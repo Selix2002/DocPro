@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>{{ quote.number }}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: Arial, Helvetica, 'DejaVu Sans', sans-serif;
+    font-size: 11px;
+    color: #1a1a1a;
+  }
+
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 20mm 18mm 20mm 18mm;
+  }
+
+  /* ── Título ── */
+  .doc-title {
+    font-family: 'Times New Roman', Times, Georgia, serif;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: #111111;
+    margin-bottom: 2px;
+  }
+
+  .title-divider {
+    border: none;
+    border-top: 2.5px solid #111111;
+    margin: 10px 0 14px;
+  }
+
+  /* ── Bloque emisor ── */
+  .emisor-name {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #111;
+    margin-bottom: 6px;
+  }
+
+  .emisor-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px 24px;
+    font-size: 10.5px;
+    color: #333;
+  }
+
+  .emisor-row { display: flex; gap: 5px; }
+  .emisor-label { font-weight: 700; color: #111; white-space: nowrap; }
+
+  .section-divider {
+    border: none;
+    border-top: 1px solid #bbb;
+    margin: 16px 0;
+  }
+
+  /* ── Bloque cliente ── */
+  .client-box {
+    border: 1px solid #888;
+    padding: 11px 13px;
+    margin-bottom: 18px;
+  }
+
+  .client-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px 24px;
+  }
+
+  .client-row {
+    display: flex;
+    gap: 6px;
+    font-size: 10.5px;
+    align-items: baseline;
+  }
+
+  .client-label {
+    font-weight: 700;
+    min-width: 72px;
+    color: #333;
+    white-space: nowrap;
+    font-size: 10px;
+  }
+
+  .client-val { color: #111; }
+
+  /* ── Tabla de ítems ── */
+  .items-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10.5px;
+    margin-bottom: 4px;
+  }
+
+  .items-table thead tr { background: #e2e2e2; }
+
+  .items-table thead th {
+    padding: 6px 8px;
+    text-align: left;
+    font-weight: 700;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.2px;
+    border-top: 1.5px solid #888;
+    border-bottom: 1.5px solid #888;
+    color: #111;
+  }
+
+  .items-table thead th.right { text-align: right; }
+
+  .items-table tbody td {
+    padding: 5px 8px;
+    border-bottom: 0.5px solid #ddd;
+    color: #222;
+    vertical-align: top;
+  }
+
+  .items-table tbody td.right { text-align: right; }
+
+  .items-table tbody tr:last-child td { border-bottom: 1px solid #888; }
+
+  /* ── Totales ── */
+  .totals-wrap {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 16px;
+  }
+
+  .totals-box {
+    border: 1px solid #888;
+    min-width: 210px;
+  }
+
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 12px;
+    font-size: 11px;
+    border-bottom: 0.5px solid #ccc;
+    gap: 24px;
+  }
+
+  .total-row:last-child {
+    border-bottom: none;
+    font-weight: 700;
+    background: #ebebeb;
+    font-size: 12px;
+  }
+
+  .total-label { color: #333; }
+  .total-amount { font-variant-numeric: tabular-nums; }
+
+  /* ── Observaciones ── */
+  .obs-section { margin-top: 24px; }
+
+  .obs-title {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: #111;
+    margin-bottom: 6px;
+    border-bottom: 1px solid #bbb;
+    padding-bottom: 4px;
+  }
+
+  .obs-text {
+    font-size: 10.5px;
+    color: #444;
+    line-height: 1.7;
+    border: 0.5px solid #ccc;
+    padding: 9px 11px;
+    min-height: 48px;
+    white-space: pre-wrap;
+  }
+
+  @page { size: A4; margin: 0; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- TÍTULO -->
+  <p class="doc-title">COTIZACIÓN N°: {{ quote.number | replace("COT-", "") }}</p>
+  <hr class="title-divider">
+
+  <!-- EMISOR -->
+  {% if company %}
+  <p class="emisor-name">{{ company.name }}</p>
+  <div class="emisor-grid">
+    {% if company.city %}
+    <div class="emisor-row">
+      <span class="emisor-label">Ciudad:</span>
+      <span>{{ company.city }}</span>
+    </div>
+    {% endif %}
+    {% if company.email %}
+    <div class="emisor-row">
+      <span class="emisor-label">E-mail:</span>
+      <span>{{ company.email }}</span>
+    </div>
+    {% endif %}
+    {% if company.phone %}
+    <div class="emisor-row">
+      <span class="emisor-label">Teléfono:</span>
+      <span>{{ company.phone }}</span>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <hr class="section-divider">
+
+  <!-- CLIENTE -->
+  <div class="client-box">
+    <div class="client-grid">
+      <!-- columna izquierda -->
+      <div>
+        <div class="client-row">
+          <span class="client-label">SEÑOR(ES):</span>
+          <span class="client-val">{{ quote.client_name }}</span>
+        </div>
+        <div class="client-row" style="margin-top:5px">
+          <span class="client-label">RUT:</span>
+          <span class="client-val">{{ quote.client_rut }}</span>
+        </div>
+        {% if quote.client_address %}
+        <div class="client-row" style="margin-top:5px">
+          <span class="client-label">DIRECCIÓN:</span>
+          <span class="client-val">{{ quote.client_address }}</span>
+        </div>
+        {% endif %}
+        {% if quote.client_city %}
+        <div class="client-row" style="margin-top:5px">
+          <span class="client-label">CIUDAD:</span>
+          <span class="client-val">{{ quote.client_city }}</span>
+        </div>
+        {% endif %}
+        {% if quote.client_phone %}
+        <div class="client-row" style="margin-top:5px">
+          <span class="client-label">TELÉFONO:</span>
+          <span class="client-val">{{ quote.client_phone }}</span>
+        </div>
+        {% endif %}
+      </div>
+      <!-- columna derecha -->
+      <div>
+        <div class="client-row">
+          <span class="client-label">FECHA EMISIÓN:</span>
+          <span class="client-val">{{ quote.issue_date | date_cl }}</span>
+        </div>
+        {% if quote.client_email %}
+        <div class="client-row" style="margin-top:24px">
+          <span class="client-label">CORREO:</span>
+          <span class="client-val">{{ quote.client_email }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLA DE ÍTEMS -->
+  <table class="items-table">
+    <thead>
+      <tr>
+        <th style="width:11%">Cantidad</th>
+        <th>Descripción</th>
+        <th class="right" style="width:19%">Valor unitario</th>
+        <th class="right" style="width:16%">Subtotal</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in quote.items %}
+      <tr>
+        <td>{{ item.quantity | fmt_qty }}</td>
+        <td>{{ item.description }}</td>
+        <td class="right">{{ item.unit_price | clp }}</td>
+        <td class="right">{{ item.subtotal | clp }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- TOTALES -->
+  <div class="totals-wrap">
+    <div class="totals-box">
+      <div class="total-row">
+        <span class="total-label">NETO ($)</span>
+        <span class="total-amount">{{ quote.neto | clp }}</span>
+      </div>
+      <div class="total-row">
+        <span class="total-label">I.V.A (19%)</span>
+        <span class="total-amount">{{ quote.iva | clp }}</span>
+      </div>
+      <div class="total-row">
+        <span class="total-label">TOTAL</span>
+        <span class="total-amount">{{ quote.total | clp }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- OBSERVACIONES -->
+  {% if quote.observations %}
+  <div class="obs-section">
+    <p class="obs-title">Observaciones</p>
+    <div class="obs-text">{{ quote.observations }}</div>
+  </div>
+  {% endif %}
+
+</div>
+</body>
+</html>

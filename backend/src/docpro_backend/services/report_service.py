@@ -1,0 +1,96 @@
+import json
+
+from sqlalchemy.orm import Session
+
+from docpro_backend.dtos.reports import ReportInput, ReportReadModel, SectionInput
+from docpro_backend.repositories.config.company_profile import CompanyProfileRepository
+from docpro_backend.repositories.config.settings import SettingRepository
+from docpro_backend.repositories.documents.document_versions import DocumentVersionRepository
+from docpro_backend.repositories.reports.reports import ReportRepository
+from docpro_backend.services.number_service import next_number
+
+
+def create_report(session: Session, data: ReportInput) -> ReportReadModel:
+    number = next_number(session, "report")
+    repo = ReportRepository(session)
+    doc, _report = repo.create(client_id=data.client_id, number=number)
+    doc, report, sections, client = repo.get_full(doc.id)
+    return ReportReadModel.from_query(doc, report, sections, client)
+
+
+def update_sections(
+    session: Session, document_id: int, sections: list[SectionInput]
+) -> ReportReadModel:
+    repo = ReportRepository(session)
+    repo.replace_sections(
+        document_id=document_id,
+        sections=[
+            {
+                "temp_id": s.temp_id,
+                "parent_temp_id": s.parent_temp_id,
+                "title": s.title,
+                "content": s.content,
+                "content_json": s.content_json,
+                "position": s.position,
+            }
+            for s in sections
+        ],
+    )
+    doc, report, sections_orm, client = repo.get_full(document_id)
+    result = ReportReadModel.from_query(doc, report, sections_orm, client)
+    _save_snapshot(session, result)
+    return result
+
+
+def finalize_report(session: Session, document_id: int) -> ReportReadModel:
+    from docpro_backend.repositories.documents.documents import DocumentRepository
+    DocumentRepository(session).update_status(document_id, "Finalizado")
+    repo = ReportRepository(session)
+    doc, report, sections, client = repo.get_full(document_id)
+    result = ReportReadModel.from_query(doc, report, sections, client)
+    _save_snapshot(session, result)
+    return result
+
+
+def get_report(session: Session, document_id: int) -> ReportReadModel:
+    repo = ReportRepository(session)
+    doc, report, sections, client = repo.get_full(document_id)
+    return ReportReadModel.from_query(doc, report, sections, client)
+
+
+def get_company(session: Session):
+    from docpro_backend.dtos.config import CompanyProfileReadModel
+    profile = CompanyProfileRepository(session).get()
+    return CompanyProfileReadModel.from_orm(profile) if profile else None
+
+
+def get_firma(session: Session) -> tuple[str | None, str | None]:
+    repo = SettingRepository(session)
+    return repo.get_or_none("firma.nombre"), repo.get_or_none("firma.cargo")
+
+
+def _save_snapshot(session: Session, report: ReportReadModel) -> None:
+    snapshot = {
+        "version": 1,
+        "document": {
+            "id": report.document_id,
+            "number": report.number,
+            "status": report.status,
+            "client_id": report.client_id,
+        },
+        "sections": [
+            {
+                "id": s.id,
+                "parent_id": s.parent_id,
+                "title": s.title,
+                "content": s.content,
+                "content_json": s.content_json,
+                "position": s.position,
+            }
+            for s in report.sections
+        ],
+    }
+    DocumentVersionRepository(session).save_snapshot(
+        document_id=report.document_id,
+        snapshot_json=json.dumps(snapshot, ensure_ascii=False),
+    )

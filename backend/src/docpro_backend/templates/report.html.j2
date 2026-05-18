@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>{{ report.number }}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: Arial, Helvetica, 'DejaVu Sans', sans-serif;
+    font-size: 11px;
+    color: #1a1a1a;
+  }
+
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 20mm 18mm 20mm 18mm;
+  }
+
+  /* ── Título ── */
+  .doc-type {
+    font-family: 'Times New Roman', Times, Georgia, serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #1D4ED8;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+
+  .doc-number {
+    font-family: 'Times New Roman', Times, Georgia, serif;
+    font-size: 13px;
+    font-weight: 400;
+    color: #444;
+  }
+
+  .title-divider {
+    border: none;
+    border-top: 2.5px solid #1D4ED8;
+    margin: 10px 0 14px;
+  }
+
+  /* ── Bloque emisor ── */
+  .emisor-name {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #111;
+    margin-bottom: 6px;
+  }
+
+  .emisor-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px 24px;
+    font-size: 10.5px;
+    color: #333;
+  }
+
+  .emisor-row { display: flex; gap: 5px; }
+  .emisor-label { font-weight: 700; color: #111; white-space: nowrap; }
+
+  .section-divider {
+    border: none;
+    border-top: 1px solid #bbb;
+    margin: 16px 0;
+  }
+
+  /* ── Bloque cliente ── */
+  .client-box {
+    border: 1px solid #888;
+    padding: 11px 13px;
+    margin-bottom: 18px;
+  }
+
+  .client-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px 24px;
+  }
+
+  .client-row {
+    display: flex;
+    gap: 6px;
+    font-size: 10.5px;
+    align-items: baseline;
+  }
+
+  .client-label {
+    font-weight: 700;
+    min-width: 72px;
+    color: #333;
+    white-space: nowrap;
+    font-size: 10px;
+  }
+
+  .client-val { color: #111; }
+
+  /* ── Caja de contexto (content_json) ── */
+  .context-box {
+    border: 1px solid #93C5FD;
+    margin-bottom: 18px;
+  }
+
+  .context-title {
+    background: #1D4ED8;
+    color: #fff;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 5px 11px;
+  }
+
+  .context-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 6px 11px 4px;
+  }
+
+  .context-row {
+    display: flex;
+    gap: 6px;
+    padding: 3px 0;
+    font-size: 10.5px;
+    border-bottom: 0.5px solid #e8f0fe;
+  }
+
+  .context-row:nth-last-child(-n+2) { border-bottom: none; }
+
+  .context-key {
+    font-weight: 700;
+    color: #1D4ED8;
+    white-space: nowrap;
+    min-width: 90px;
+  }
+
+  .context-val { color: #111; }
+
+  /* ── Secciones numeradas ── */
+  .report-section { margin-bottom: 18px; }
+
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f0f4ff;
+    border-left: 4px solid #1D4ED8;
+    padding: 6px 10px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #111;
+    margin-bottom: 8px;
+  }
+
+  .section-num { color: #1D4ED8; white-space: nowrap; }
+
+  .subsection { margin-top: 10px; margin-left: 12px; }
+
+  .subsection-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-left: 3px solid #93C5FD;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #1e3a8a;
+    background: #f8faff;
+    margin-bottom: 6px;
+  }
+
+  /* ── Contenido de secciones ── */
+  .item-list {
+    list-style: none;
+    padding: 2px 0 0 16px;
+    margin: 0;
+  }
+
+  .item-list li {
+    display: flex;
+    gap: 6px;
+    font-size: 10.5px;
+    color: #222;
+    padding: 2px 0;
+    line-height: 1.5;
+  }
+
+  .item-num {
+    color: #1D4ED8;
+    font-weight: 700;
+    white-space: nowrap;
+    min-width: 16px;
+  }
+
+  .free-text {
+    font-size: 10.5px;
+    color: #222;
+    line-height: 1.7;
+    padding-left: 16px;
+    white-space: pre-wrap;
+  }
+
+  /* ── Firma ── */
+  .firma-wrap {
+    margin-top: 40px;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .firma-box {
+    text-align: center;
+    min-width: 180px;
+  }
+
+  .firma-line {
+    border-top: 1px solid #555;
+    margin-bottom: 5px;
+  }
+
+  .firma-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: #111;
+  }
+
+  .firma-cargo {
+    font-size: 10px;
+    color: #555;
+    margin-top: 2px;
+  }
+
+  @page { size: A4; margin: 0; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- TÍTULO -->
+  <p class="doc-type">Informe Técnico</p>
+  <p class="doc-number">N° {{ report.number | replace("IT-", "") }}</p>
+  <hr class="title-divider">
+
+  <!-- EMISOR -->
+  {% if company %}
+  <p class="emisor-name">{{ company.name }}</p>
+  <div class="emisor-grid">
+    {% if company.city %}
+    <div class="emisor-row">
+      <span class="emisor-label">Ciudad:</span>
+      <span>{{ company.city }}</span>
+    </div>
+    {% endif %}
+    {% if company.email %}
+    <div class="emisor-row">
+      <span class="emisor-label">E-mail:</span>
+      <span>{{ company.email }}</span>
+    </div>
+    {% endif %}
+    {% if company.phone %}
+    <div class="emisor-row">
+      <span class="emisor-label">Teléfono:</span>
+      <span>{{ company.phone }}</span>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <hr class="section-divider">
+
+  <!-- CLIENTE -->
+  <div class="client-box">
+    <div class="client-grid">
+      <!-- columna izquierda -->
+      <div>
+        <div class="client-row">
+          <span class="client-label">SEÑOR(ES):</span>
+          <span class="client-val">{{ report.client_name }}</span>
+        </div>
+        <div class="client-row" style="margin-top:5px">
+          <span class="client-label">RUT:</span>
+          <span class="client-val">{{ report.client_rut }}</span>
+        </div>
+        {% if report.client_address %}
+        <div class="client-row" style="margin-top:5px">
+          <span class="client-label">DIRECCIÓN:</span>
+          <span class="client-val">{{ report.client_address }}</span>
+        </div>
+        {% endif %}
+        {% if report.client_city %}
+        <div class="client-row" style="margin-top:5px">
+          <span class="client-label">CIUDAD:</span>
+          <span class="client-val">{{ report.client_city }}</span>
+        </div>
+        {% endif %}
+        {% if report.client_phone %}
+        <div class="client-row" style="margin-top:5px">
+          <span class="client-label">TELÉFONO:</span>
+          <span class="client-val">{{ report.client_phone }}</span>
+        </div>
+        {% endif %}
+      </div>
+      <!-- columna derecha -->
+      <div>
+        <div class="client-row">
+          <span class="client-label">FECHA EMISIÓN:</span>
+          <span class="client-val">{{ report.created_at | date_cl }}</span>
+        </div>
+        {% if report.client_email %}
+        <div class="client-row" style="margin-top:24px">
+          <span class="client-label">CORREO:</span>
+          <span class="client-val">{{ report.client_email }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- SECCIONES -->
+  {% for node in sections_tree %}
+    {% if node.is_context %}
+    <div class="context-box">
+      <div class="context-title">{{ node.section.title }}</div>
+      {% if node.content_json_parsed %}
+      <div class="context-grid">
+        {% for key, val in node.content_json_parsed.items() %}
+        <div class="context-row">
+          <span class="context-key">{{ key | fmt_key }}</span>
+          <span class="context-val">{{ val }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="report-section">
+      <div class="section-title">
+        <span class="section-num">{{ node.number }}.</span>
+        <span>{{ node.section.title }}</span>
+      </div>
+      {% if node.section.content %}
+        {% set lines = node.section.content | content_lines %}
+        {% if lines | length > 1 %}
+        <ul class="item-list">
+          {% for line in lines %}
+          <li><span class="item-num">{{ loop.index }}.</span><span>{{ line }}</span></li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="free-text">{{ node.section.content }}</p>
+        {% endif %}
+      {% endif %}
+      {% for child in node.children %}
+      <div class="subsection">
+        <div class="subsection-title">
+          <span class="section-num">{{ child.number }}.</span>
+          <span>{{ child.section.title }}</span>
+        </div>
+        {% if child.section.content %}
+          {% set lines = child.section.content | content_lines %}
+          {% if lines | length > 1 %}
+          <ul class="item-list">
+            {% for line in lines %}
+            <li><span class="item-num">{{ loop.index }}.</span><span>{{ line }}</span></li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p class="free-text">{{ child.section.content }}</p>
+          {% endif %}
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  {% endfor %}
+
+  <!-- FIRMA -->
+  {% if firma_nombre %}
+  <div class="firma-wrap">
+    <div class="firma-box">
+      <div class="firma-line"></div>
+      <p class="firma-name">{{ firma_nombre }}</p>
+      {% if firma_cargo %}
+      <p class="firma-cargo">{{ firma_cargo }}</p>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+</body>
+</html>

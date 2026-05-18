@@ -1,0 +1,26 @@
+[project]
+name = "docpro-frontend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Selix2002", email = "smunmuno@umag.cl" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "pyside6>=6.11.1",
+    "docpro-backend",
+]
+
+[project.scripts]
+docpro-frontend = "docpro_frontend:main"
+
+[tool.uv.sources]
+docpro-backend = { workspace = true }
+
+[tool.uv_build]
+module-name = "docpro_frontend"
+
+[build-system]
+requires = ["uv_build>=0.8.2,<0.9.0"]
+build-backend = "uv_build"
