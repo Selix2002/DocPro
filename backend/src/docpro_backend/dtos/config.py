@@ -39,6 +39,7 @@ class SectionTemplateReadModel:
     title: str
     content: str | None
     content_json: str | None
+    usage_count: int
     created_at: str
 
     @classmethod
@@ -49,5 +50,6 @@ class SectionTemplateReadModel:
             title=obj.title,
             content=obj.content,
             content_json=obj.content_json,
+            usage_count=obj.usage_count,
             created_at=obj.created_at,
         )

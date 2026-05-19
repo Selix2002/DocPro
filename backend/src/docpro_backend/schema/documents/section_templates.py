@@ -11,4 +11,5 @@ class SectionTemplate(Base):
     title: Mapped[str]
     content: Mapped[str | None]
     content_json: Mapped[str | None]
+    usage_count: Mapped[int] = mapped_column(server_default="0")
     created_at: Mapped[str] = mapped_column(server_default="CURRENT_TIMESTAMP")

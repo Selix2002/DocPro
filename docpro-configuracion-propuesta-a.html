@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DocPro — Configuración (Propuesta A)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --amber:         #B45309;
+    --amber-light:   #FEF3C7;
+    --amber-text:    #92400E;
+    --blue:          #1D4ED8;
+    --blue-dark:     #1E3A8A;
+    --blue-light:    #DBEAFE;
+    --green:         #059669;
+    --green-light:   #D1FAE5;
+    --green-text:    #065F46;
+    --red:           #DC2626;
+    --red-light:     #FEE2E2;
+    --red-text:      #991B1B;
+    --purple:        #7C3AED;
+    --purple-light:  #F5F3FF;
+    --purple-border: #E9D5FF;
+    --orange:        #EA580C;
+    --orange-light:  #FFF7ED;
+    --orange-border: #FED7AA;
+    --border:        #E5E7EB;
+    --border-soft:   #F3F4F6;
+    --bg:            #F4F4F5;
+    --surface:       white;
+    --text:          #111827;
+    --muted:         #6B7280;
+    --placeholder:   #D1D5DB;
+  }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
+    background: var(--bg);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    color: var(--text);
+    min-height: 0;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    height: 60px;
+    padding: 0 24px;
+    flex-shrink: 0;
+    gap: 0;
+  }
+
+  .back-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 8px 16px 8px 0;
+    border-right: 1px solid var(--border-soft);
+    margin-right: 20px;
+    font-size: 14px;
+    transition: color .12s;
+    white-space: nowrap;
+  }
+  .back-btn:hover { color: var(--text); }
+  .back-btn i { font-size: 18px; }
+
+  .header-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .header-title i { font-size: 20px; color: var(--muted); }
+  .header-title span { font-size: 16px; font-weight: 600; color: var(--text); }
+
+  .header-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .hbtn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    background: var(--surface);
+    color: #374151;
+    transition: background .12s;
+    white-space: nowrap;
+  }
+  .hbtn i { font-size: 16px; }
+  .hbtn:hover { background: var(--bg); }
+  .hbtn-primary { background: var(--amber); border-color: var(--amber); color: white; }
+  .hbtn-primary:hover { opacity: .88; background: var(--amber); }
+
+  /* ── BODY ── */
+  .config-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  /* ── SIDEBAR NAV ── */
+  .sidebar {
+    width: 230px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 16px 10px;
+    gap: 2px;
+  }
+
+  .nav-group-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .09em;
+    color: var(--placeholder);
+    padding: 12px 12px 6px;
+  }
+  .nav-group-label:first-child { padding-top: 4px; }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 9px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    transition: background .1s, color .1s;
+    text-decoration: none;
+  }
+  .nav-item i { font-size: 18px; flex-shrink: 0; }
+  .nav-item:hover { background: var(--border-soft); color: var(--text); }
+  .nav-item.active {
+    background: var(--amber-light);
+    color: var(--amber-text);
+    font-weight: 600;
+  }
+  .nav-item.active i { color: var(--amber); }
+
+  .nav-badge {
+    margin-left: auto;
+    background: var(--green-light);
+    color: var(--green-text);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 5px;
+  }
+  .nav-badge.warn {
+    background: var(--amber-light);
+    color: var(--amber-text);
+  }
+  .nav-badge.off {
+    background: var(--border-soft);
+    color: var(--muted);
+  }
+
+  /* ── CONTENT AREA ── */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 32px;
+    min-height: 0;
+    min-width: 0;
+  }
+  .content::-webkit-scrollbar { width: 6px; }
+  .content::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 4px; }
+
+  /* ── PAGE HEADER ── */
+  .page-head {
+    margin-bottom: 24px;
+  }
+  .page-head h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .page-head p {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .card:last-child { margin-bottom: 0; }
+
+  .card-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border-soft);
+    background: #FAFAFA;
+  }
+
+  .card-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .card-icon.amber { background: var(--amber-light); }
+  .card-icon.amber i { color: var(--amber); font-size: 17px; }
+  .card-icon.blue  { background: var(--blue-light); }
+  .card-icon.blue  i { color: var(--blue); font-size: 17px; }
+  .card-icon.green { background: var(--green-light); }
+  .card-icon.green i { color: var(--green); font-size: 17px; }
+  .card-icon.purple { background: var(--purple-light); }
+  .card-icon.purple i { color: var(--purple); font-size: 17px; }
+  .card-icon.gray  { background: var(--border-soft); }
+  .card-icon.gray  i { color: var(--muted); font-size: 17px; }
+  .card-icon.red   { background: var(--red-light); }
+  .card-icon.red   i { color: var(--red); font-size: 17px; }
+
+  .card-head-text { flex: 1; }
+  .card-head-title  { font-size: 14px; font-weight: 600; color: var(--text); }
+  .card-head-sub    { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .card-head-right  { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+  .card-body { padding: 20px; }
+
+  /* ── FORM GRID ── */
+  .form-grid { display: grid; gap: 14px; }
+  .cols-2 { grid-template-columns: 1fr 1fr; }
+  .cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .col-span-2 { grid-column: span 2; }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--muted);
+  }
+  .field input, .field select, .field textarea {
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 9px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text);
+    background: var(--surface);
+    outline: none;
+    transition: border-color .12s, box-shadow .12s;
+    width: 100%;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--amber);
+    box-shadow: 0 0 0 3px rgba(180,83,9,.1);
+  }
+  .field input::placeholder { color: var(--placeholder); }
+  .field-hint { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  /* password field */
+  .pass-wrap { position: relative; }
+  .pass-wrap input { padding-right: 40px; font-family: monospace; letter-spacing: 2px; }
+  .pass-toggle {
+    position: absolute; right: 10px; top: 50%;
+    transform: translateY(-50%);
+    background: none; border: none;
+    cursor: pointer; color: var(--placeholder);
+    font-size: 17px;
+    transition: color .12s;
+  }
+  .pass-toggle:hover { color: var(--muted); }
+
+  /* ── COUNTER ROW ── */
+  .counter-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--border-soft);
+    border-radius: 10px;
+  }
+  .counter-label { font-size: 13px; font-weight: 500; color: var(--text); flex: 1; }
+  .counter-sub   { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .counter-prefix {
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 6px 10px;
+    font-size: 14px; font-weight: 600;
+    font-family: monospace;
+    background: var(--surface);
+    outline: none;
+    width: 80px;
+    transition: border-color .12s;
+  }
+  .counter-prefix:focus { border-color: var(--amber); }
+  .counter-num {
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 6px 10px;
+    font-size: 14px; font-weight: 600;
+    background: var(--surface);
+    outline: none;
+    width: 80px;
+    text-align: right;
+    transition: border-color .12s;
+  }
+  .counter-num:focus { border-color: var(--amber); }
+  .reset-btn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--surface);
+    font-size: 12px; font-weight: 500;
+    color: var(--muted); cursor: pointer;
+    font-family: inherit;
+    transition: all .12s;
+  }
+  .reset-btn:hover { border-color: var(--red); color: var(--red); background: var(--red-light); }
+  .reset-btn i { font-size: 14px; }
+
+  /* ── STATUS PILL ── */
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .status-pill .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .status-pill.connected  { background: var(--green-light); color: var(--green-text); }
+  .status-pill.connected .dot  { background: var(--green); }
+  .status-pill.disconnected { background: var(--border-soft); color: var(--muted); }
+  .status-pill.disconnected .dot { background: var(--placeholder); }
+  .status-pill.error { background: var(--red-light); color: var(--red-text); }
+  .status-pill.error .dot { background: var(--red); }
+  .status-pill.warn  { background: var(--amber-light); color: var(--amber-text); }
+  .status-pill.warn .dot  { background: var(--amber); }
+
+  /* ── INTEGRATION ROW ── */
+  .integration-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 12px;
+  }
+  .integration-row:last-child { margin-bottom: 0; }
+
+  .int-logo {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .int-info { flex: 1; }
+  .int-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .int-detail { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .int-actions { display: flex; align-items: center; gap: 8px; }
+
+  .ibtn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 12px; font-weight: 500;
+    cursor: pointer; font-family: inherit;
+    background: var(--surface); color: #374151;
+    transition: background .12s;
+    white-space: nowrap;
+  }
+  .ibtn i { font-size: 14px; }
+  .ibtn:hover { background: var(--bg); }
+  .ibtn-primary { background: var(--blue); border-color: var(--blue); color: white; }
+  .ibtn-primary:hover { opacity: .88; background: var(--blue); }
+  .ibtn-danger { border-color: #FECACA; color: var(--red); }
+  .ibtn-danger:hover { background: var(--red-light); }
+
+  /* ── MODEL SELECT ── */
+  .model-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-soft);
+  }
+  .model-row label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; white-space: nowrap; }
+  .model-row select {
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text);
+    background: var(--surface);
+    outline: none;
+    flex: 1;
+    transition: border-color .12s;
+  }
+  .model-row select:focus { border-color: var(--amber); }
+  .validate-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 14px;
+    border: 1px solid var(--blue-light);
+    border-radius: 9px;
+    background: var(--blue-light);
+    color: var(--blue-dark);
+    font-size: 13px; font-weight: 500;
+    cursor: pointer; font-family: inherit;
+    transition: background .12s;
+    white-space: nowrap;
+  }
+  .validate-btn:hover { background: #BFDBFE; }
+  .validate-btn i { font-size: 15px; }
+
+  /* ── TEMPLATE LIST ── */
+  .template-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .template-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--blue-light);
+    border-radius: 10px;
+    transition: border-left-color .12s;
+  }
+  .template-item:hover { border-left-color: var(--blue); }
+
+  .tmpl-icon { font-size: 18px; color: var(--blue); flex-shrink: 0; }
+  .tmpl-name { font-size: 13px; font-weight: 500; color: var(--text); flex: 1; }
+  .tmpl-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .tmpl-actions { display: flex; gap: 6px; }
+  .tmpl-btn {
+    width: 28px; height: 28px;
+    border-radius: 6px; border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    background: transparent; cursor: pointer;
+    color: var(--muted);
+    transition: all .1s;
+  }
+  .tmpl-btn:hover { background: var(--bg); }
+  .tmpl-btn.del:hover { background: var(--red-light); border-color: #FECACA; color: var(--red); }
+  .tmpl-btn i { font-size: 15px; }
+
+  .add-tmpl-btn {
+    display: flex; align-items: center; gap: 7px;
+    padding: 9px 14px;
+    border: 1px dashed #93C5FD;
+    border-radius: 10px;
+    background: var(--bg);
+    font-size: 13px; font-weight: 500;
+    color: var(--blue); cursor: pointer;
+    font-family: inherit;
+    transition: background .1s, border-color .1s;
+    width: 100%;
+  }
+  .add-tmpl-btn:hover { background: var(--blue-light); border-color: var(--blue); }
+  .add-tmpl-btn i { font-size: 16px; }
+
+  /* ── BACKUP ROW ── */
+  .backup-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    background: var(--border-soft);
+    border-radius: 11px;
+    margin-bottom: 10px;
+  }
+  .backup-row:last-child { margin-bottom: 0; }
+
+  .backup-icon {
+    width: 36px; height: 36px;
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .backup-icon.green { background: var(--green-light); }
+  .backup-icon.green i { color: var(--green); font-size: 18px; }
+  .backup-icon.amber { background: var(--amber-light); }
+  .backup-icon.amber i { color: var(--amber); font-size: 18px; }
+
+  .backup-text { flex: 1; }
+  .backup-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .backup-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* ── THEME TOGGLE ── */
+  .theme-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+
+  .theme-option {
+    border: 2px solid var(--border);
+    border-radius: 11px;
+    padding: 14px;
+    cursor: pointer;
+    transition: border-color .12s, box-shadow .12s;
+    text-align: center;
+  }
+  .theme-option:hover { border-color: #D1D5DB; }
+  .theme-option.active { border-color: var(--amber); box-shadow: 0 0 0 3px rgba(180,83,9,.1); }
+
+  .theme-preview {
+    height: 56px;
+    border-radius: 7px;
+    margin-bottom: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border);
+  }
+  .tp-bar { height: 14px; }
+  .tp-body { flex: 1; }
+
+  /* light theme preview */
+  .tp-light .tp-bar  { background: #fff; border-bottom: 1px solid #E5E7EB; }
+  .tp-light .tp-body { background: #F4F4F5; }
+
+  /* dark theme preview */
+  .tp-dark .tp-bar  { background: #1F2937; border-bottom: 1px solid #374151; }
+  .tp-dark .tp-body { background: #111827; }
+
+  /* system theme preview */
+  .tp-system { background: linear-gradient(90deg, #F4F4F5 50%, #111827 50%); }
+  .tp-system .tp-bar  { display: none; }
+  .tp-system .tp-body { display: none; }
+
+  .theme-label { font-size: 12px; font-weight: 500; color: var(--text); }
+  .theme-sub   { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .active-check {
+    display: none;
+    width: 18px; height: 18px;
+    background: var(--amber);
+    border-radius: 50%;
+    align-items: center; justify-content: center;
+    margin: 6px auto 0;
+  }
+  .active-check i { font-size: 11px; color: white; }
+  .theme-option.active .active-check { display: flex; }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<div class="header">
+  <div class="back-btn">
+    <i class="ti ti-arrow-left"></i>
+    Inicio
+  </div>
+  <div class="header-title">
+    <i class="ti ti-settings"></i>
+    <span>Configuración</span>
+  </div>
+  <div class="header-right">
+    <button class="hbtn hbtn-primary"><i class="ti ti-device-floppy"></i> Guardar cambios</button>
+  </div>
+</div>
+
+<!-- ── BODY ── -->
+<div class="config-body">
+
+  <!-- ── SIDEBAR ── -->
+  <nav class="sidebar">
+    <div class="nav-group-label">General</div>
+
+    <a class="nav-item active">
+      <i class="ti ti-building"></i>
+      Perfil de empresa
+    </a>
+    <a class="nav-item">
+      <i class="ti ti-hash"></i>
+      Numeración
+    </a>
+    <a class="nav-item">
+      <i class="ti ti-sun"></i>
+      Apariencia
+    </a>
+
+    <div class="nav-group-label">Integraciones</div>
+
+    <a class="nav-item">
+      <i class="ti ti-brand-google"></i>
+      Gmail
+      <span class="nav-badge">Conectado</span>
+    </a>
+    <a class="nav-item">
+      <i class="ti ti-sparkles"></i>
+      IA · Groq
+      <span class="nav-badge warn">Conf.</span>
+    </a>
+
+    <div class="nav-group-label">Documentos</div>
+
+    <a class="nav-item">
+      <i class="ti ti-template"></i>
+      Plantillas
+      <span class="nav-badge off">4</span>
+    </a>
+
+    <div class="nav-group-label">Datos</div>
+
+    <a class="nav-item">
+      <i class="ti ti-database-export"></i>
+      Backup
+    </a>
+  </nav>
+
+  <!-- ── CONTENT ── -->
+  <div class="content">
+
+    <div class="page-head">
+      <h2>Perfil de empresa</h2>
+      <p>Estos datos aparecen en el encabezado de todos los documentos generados.</p>
+    </div>
+
+    <!-- EMPRESA -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon amber"><i class="ti ti-building"></i></div>
+        <div class="card-head-text">
+          <div class="card-head-title">Datos del emisor</div>
+          <div class="card-head-sub">Se usan para autocompletar encabezados de cotizaciones e informes</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="form-grid cols-2">
+          <div class="field col-span-2">
+            <label>Nombre o razón social</label>
+            <input type="text" value="Servicios Técnicos SRL">
+          </div>
+          <div class="field">
+            <label>Ciudad</label>
+            <input type="text" value="Punta Arenas">
+          </div>
+          <div class="field">
+            <label>Teléfono</label>
+            <input type="tel" value="+56 61 234 000">
+          </div>
+          <div class="field col-span-2">
+            <label>Correo electrónico</label>
+            <input type="email" value="servicios@stec.cl">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NUMERACIÓN -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon blue"><i class="ti ti-hash"></i></div>
+        <div class="card-head-text">
+          <div class="card-head-title">Numeración de documentos</div>
+          <div class="card-head-sub">Prefijos y contadores de inicio para cada tipo de documento</div>
+        </div>
+      </div>
+      <div class="card-body" style="display:flex; flex-direction:column; gap:10px;">
+        <div class="counter-row">
+          <div>
+            <div class="counter-label">Cotizaciones</div>
+            <div class="counter-sub">Próxima: COT-0024</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:11px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.07em;">Prefijo</span>
+            <input class="counter-prefix" type="text" value="COT-">
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:11px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.07em;">Inicio</span>
+            <input class="counter-num" type="number" value="24">
+          </div>
+          <button class="reset-btn"><i class="ti ti-refresh"></i> Reset</button>
+        </div>
+        <div class="counter-row">
+          <div>
+            <div class="counter-label">Informes técnicos</div>
+            <div class="counter-sub">Próximo: IT-0042</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:11px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.07em;">Prefijo</span>
+            <input class="counter-prefix" type="text" value="IT-">
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:11px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.07em;">Inicio</span>
+            <input class="counter-num" type="number" value="42">
+          </div>
+          <button class="reset-btn"><i class="ti ti-refresh"></i> Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- APARIENCIA -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon gray"><i class="ti ti-sun"></i></div>
+        <div class="card-head-text">
+          <div class="card-head-title">Apariencia</div>
+          <div class="card-head-sub">Tema de la interfaz — se aplica en tiempo real</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="theme-grid">
+          <div class="theme-option">
+            <div class="theme-preview tp-light"></div>
+            <div class="theme-label">Claro</div>
+            <div class="theme-sub">Siempre modo claro</div>
+            <div class="active-check"><i class="ti ti-check"></i></div>
+          </div>
+          <div class="theme-option">
+            <div class="theme-preview tp-dark"></div>
+            <div class="theme-label">Oscuro</div>
+            <div class="theme-sub">Siempre modo oscuro</div>
+            <div class="active-check"><i class="ti ti-check"></i></div>
+          </div>
+          <div class="theme-option active">
+            <div class="theme-preview tp-system"></div>
+            <div class="theme-label">Sistema</div>
+            <div class="theme-sub">Sigue Windows 11</div>
+            <div class="active-check"><i class="ti ti-check"></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GMAIL -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon green"><i class="ti ti-brand-google"></i></div>
+        <div class="card-head-text">
+          <div class="card-head-title">Gmail</div>
+          <div class="card-head-sub">Integración OAuth 2.0 para envío de correos con documentos adjuntos</div>
+        </div>
+        <div class="card-head-right">
+          <span class="status-pill connected"><div class="dot"></div>Conectado</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="integration-row">
+          <div class="int-logo">📧</div>
+          <div class="int-info">
+            <div class="int-name">contacto@serviciosstec.cl</div>
+            <div class="int-detail">Cuenta activa · Último uso: hoy a las 09:14</div>
+          </div>
+          <div class="int-actions">
+            <button class="ibtn ibtn-danger"><i class="ti ti-unlink"></i> Desconectar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GROQ IA -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon purple"><i class="ti ti-sparkles"></i></div>
+        <div class="card-head-text">
+          <div class="card-head-title">Inteligencia artificial · Groq</div>
+          <div class="card-head-sub">API key para mejora de redacción en documentos</div>
+        </div>
+        <div class="card-head-right">
+          <span class="status-pill warn"><div class="dot"></div>Sin validar</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field">
+          <label>API Key</label>
+          <div class="pass-wrap">
+            <input type="password" value="gsk_•••••••••••••••••••••••••" placeholder="gsk_…">
+            <button class="pass-toggle"><i class="ti ti-eye"></i></button>
+          </div>
+          <span class="field-hint">Se almacena cifrada localmente con Fernet. Nunca se envía a servidores propios.</span>
+        </div>
+        <div class="model-row">
+          <label>Modelo</label>
+          <select>
+            <option selected>llama3-70b-8192</option>
+            <option>llama3-8b-8192</option>
+            <option>mixtral-8x7b-32768</option>
+            <option>gemma-7b-it</option>
+          </select>
+          <button class="validate-btn"><i class="ti ti-plug"></i> Validar conexión</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLANTILLAS -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon blue"><i class="ti ti-template"></i></div>
+        <div class="card-head-text">
+          <div class="card-head-title">Plantillas de sección</div>
+          <div class="card-head-sub">Secciones guardadas reutilizables al crear informes técnicos</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="template-list">
+          <div class="template-item">
+            <i class="ti ti-layout-list tmpl-icon"></i>
+            <div>
+              <div class="tmpl-name">Mantención preventiva estándar</div>
+              <div class="tmpl-meta">Sección completa · Usada 8 veces</div>
+            </div>
+            <div class="tmpl-actions">
+              <button class="tmpl-btn"><i class="ti ti-pencil"></i></button>
+              <button class="tmpl-btn del"><i class="ti ti-trash"></i></button>
+            </div>
+          </div>
+          <div class="template-item">
+            <i class="ti ti-layout-list tmpl-icon"></i>
+            <div>
+              <div class="tmpl-name">Conclusión estándar con garantía</div>
+              <div class="tmpl-meta">Sección completa · Usada 5 veces</div>
+            </div>
+            <div class="tmpl-actions">
+              <button class="tmpl-btn"><i class="ti ti-pencil"></i></button>
+              <button class="tmpl-btn del"><i class="ti ti-trash"></i></button>
+            </div>
+          </div>
+          <div class="template-item">
+            <i class="ti ti-layout-list tmpl-icon"></i>
+            <div>
+              <div class="tmpl-name">Diagnóstico equipo refrigeración</div>
+              <div class="tmpl-meta">Subsección · Usada 3 veces</div>
+            </div>
+            <div class="tmpl-actions">
+              <button class="tmpl-btn"><i class="ti ti-pencil"></i></button>
+              <button class="tmpl-btn del"><i class="ti ti-trash"></i></button>
+            </div>
+          </div>
+          <div class="template-item">
+            <i class="ti ti-layout-list tmpl-icon"></i>
+            <div>
+              <div class="tmpl-name">Observaciones con validez 30 días</div>
+              <div class="tmpl-meta">Subsección · Usada 12 veces</div>
+            </div>
+            <div class="tmpl-actions">
+              <button class="tmpl-btn"><i class="ti ti-pencil"></i></button>
+              <button class="tmpl-btn del"><i class="ti ti-trash"></i></button>
+            </div>
+          </div>
+          <button class="add-tmpl-btn"><i class="ti ti-plus"></i> Nueva plantilla</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BACKUP -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon gray"><i class="ti ti-database-export"></i></div>
+        <div class="card-head-text">
+          <div class="card-head-title">Backup y restauración</div>
+          <div class="card-head-sub">Exportar o restaurar la base de datos SQLite local</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="backup-row">
+          <div class="backup-icon green"><i class="ti ti-database-export"></i></div>
+          <div class="backup-text">
+            <div class="backup-name">Exportar copia de seguridad</div>
+            <div class="backup-desc">Guarda la base de datos en una carpeta elegida por el usuario · Último backup: nunca</div>
+          </div>
+          <button class="hbtn"><i class="ti ti-download"></i> Exportar ahora</button>
+        </div>
+        <div class="backup-row">
+          <div class="backup-icon amber"><i class="ti ti-database-import"></i></div>
+          <div class="backup-text">
+            <div class="backup-name">Restaurar desde backup</div>
+            <div class="backup-desc">Reemplaza la base de datos actual con un archivo de backup. Esta acción no se puede deshacer.</div>
+          </div>
+          <button class="hbtn" style="border-color:#FECACA; color:var(--red)"><i class="ti ti-upload"></i> Restaurar</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- fin content -->
+</div><!-- fin config-body -->
+</body>
+</html>

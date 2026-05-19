@@ -47,6 +47,9 @@ class DashboardWidget(QWidget):
         self._service.error.connect(self._on_error)
         self._service.load()
 
+    def refresh(self) -> None:
+        self._service.load()
+
     def _on_data_loaded(self, data) -> None:
         t = data["totales"]
         self._body.set_totals(t["cotizaciones"], t["informes"], t["clientes"], t["docs_total"])

@@ -71,10 +71,10 @@ def _fetch() -> dict:
             obj = session.get(Setting, key)
             return obj.value if obj else default
 
-        quote_prefix   = _setting("quote.prefix",   "COT-")
-        quote_counter  = int(_setting("quote.counter",  "0"))
-        report_prefix  = _setting("report.prefix",  "IT-")
-        report_counter = int(_setting("report.counter", "0"))
+        quote_prefix  = _setting("quote_prefix",  "COT-")
+        quote_number  = int(_setting("quote_number",  "1"))
+        report_prefix = _setting("report_prefix", "IT-")
+        report_number = int(_setting("report_number", "1"))
 
         return {
             "totales": {
@@ -107,8 +107,8 @@ def _fetch() -> dict:
                 }
                 for doc, client in draft_rows
             ],
-            "siguiente_cot": f"{quote_prefix}{str(quote_counter + 1).zfill(4)}",
-            "siguiente_inf": f"{report_prefix}{str(report_counter + 1).zfill(4)}",
+            "siguiente_cot": f"{quote_prefix}{str(quote_number).zfill(4)}",
+            "siguiente_inf": f"{report_prefix}{str(report_number).zfill(4)}",
         }
     finally:
         session.close()

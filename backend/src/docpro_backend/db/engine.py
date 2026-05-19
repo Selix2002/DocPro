@@ -6,6 +6,10 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 
 
+def get_db_path() -> Path:
+    return _db_path()
+
+
 def _db_path() -> Path:
     if getattr(sys, "frozen", False):
         base = Path(os.environ["APPDATA"]) / "DocPro"

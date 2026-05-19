@@ -7,3 +7,6 @@ docpro-schema-workbench.sql
 *.db
 .venv/
 backend/tmp/
+docpro-cotizacion-propuesta-a.html
+docpro-informe-propuesta.html
+docpro-configuracion-propuesta-b.html
