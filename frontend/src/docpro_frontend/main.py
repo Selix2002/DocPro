@@ -6,7 +6,9 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QStackedWidget
 from docpro_backend.db.engine import get_db_path
 from docpro_frontend.dashboard_widget import DashboardWidget
 from docpro_frontend.services.settings_service import SettingsService
+from docpro_frontend.services.quote_service import QuoteService
 from docpro_frontend.settings.views.settings_widget import SettingsWidget
+from docpro_frontend.quote.views.quote_widget import QuoteWidget
 
 _GLOBAL_STYLE = """
 * {
@@ -54,22 +56,19 @@ def main() -> None:
 
     stack = QStackedWidget()
     dashboard = DashboardWidget()
-    settings = SettingsWidget()
+    settings  = SettingsWidget()
+    quote_wgt = QuoteWidget()
 
     stack.addWidget(dashboard)
     stack.addWidget(settings)
+    stack.addWidget(quote_wgt)
     stack.setCurrentWidget(dashboard)
     window.setCentralWidget(stack)
 
-    dashboard.tab_changed.connect(lambda name: print(f"[nav] tab → {name}"))
-    dashboard.new_quote_requested.connect(lambda: print("[nav] nueva cotización"))
-    dashboard.new_report_requested.connect(lambda: print("[nav] nuevo informe"))
-    dashboard.import_pdf_requested.connect(lambda: print("[nav] importar PDF"))
-    dashboard.document_opened.connect(lambda doc_id: print(f"[nav] abrir documento {doc_id}"))
-    dashboard.draft_opened.connect(lambda doc_id: print(f"[nav] abrir borrador {doc_id}"))
-
     settings_svc = SettingsService(settings, DB_PATH)
     settings_svc.load_all()
+
+    quote_svc = QuoteService(quote_wgt)
 
     def go_to_settings():
         settings_svc.load_all()
@@ -78,6 +77,14 @@ def main() -> None:
     def go_to_dashboard():
         dashboard.refresh()
         stack.setCurrentWidget(dashboard)
+
+    def open_new_quote():
+        quote_svc.open_new()
+        stack.setCurrentWidget(quote_wgt)
+
+    def open_existing_quote(doc_id: int):
+        quote_svc.open_existing(doc_id)
+        stack.setCurrentWidget(quote_wgt)
 
     def back_to_dashboard():
         if settings_svc.has_unsaved_changes():
@@ -107,9 +114,20 @@ def main() -> None:
                 return
         go_to_dashboard()
 
+    dashboard.tab_changed.connect(lambda name: print(f"[nav] tab → {name}"))
+    dashboard.new_report_requested.connect(lambda: print("[nav] nuevo informe"))
+    dashboard.import_pdf_requested.connect(lambda: print("[nav] importar PDF"))
+
+    dashboard.new_quote_requested.connect(open_new_quote)
+    dashboard.create_quote_requested.connect(open_new_quote)
+    dashboard.draft_opened.connect(open_existing_quote)
+    dashboard.document_opened.connect(open_existing_quote)
+
     dashboard.settings_requested.connect(go_to_settings)
     settings.back_requested.connect(back_to_dashboard)
     settings.save_requested.connect(go_to_dashboard)
+
+    quote_svc.navigation_back.connect(go_to_dashboard)
 
     window.show()
     sys.exit(app.exec())

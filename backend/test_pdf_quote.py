@@ -38,7 +38,7 @@ QUOTE = QuoteReadModel(
     client_name="Industrias del Sur Ltda.",
     client_rut="76.543.210-9",
     client_address="Av. Colón 580, Of. 3",
-    client_city="Punta Arenas",
+
     client_email="compras@industrias.cl",
     client_phone="+56 61 244 5566",
     created_at="2026-05-17T10:00:00Z",

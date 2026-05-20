@@ -23,11 +23,10 @@ class ClientRepository(BaseRepository[Client]):
         rut: str,
         name: str,
         address: str | None = None,
-        city: str | None = None,
         email: str | None = None,
         phone: str | None = None,
     ) -> Client:
-        client = Client(rut=rut, name=name, address=address, city=city,
+        client = Client(rut=rut, name=name, address=address,
                         email=email, phone=phone)
         self._session.add(client)
         self._session.flush()

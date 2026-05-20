@@ -10,7 +10,6 @@ class ClientInput:
     rut: str
     name: str
     address: str | None = None
-    city: str | None = None
     email: str | None = None
     phone: str | None = None
 
@@ -21,7 +20,6 @@ class ClientReadModel:
     rut: str
     name: str
     address: str | None
-    city: str | None
     email: str | None
     phone: str | None
     created_at: str
@@ -33,7 +31,6 @@ class ClientReadModel:
             rut=obj.rut,
             name=obj.name,
             address=obj.address,
-            city=obj.city,
             email=obj.email,
             phone=obj.phone,
             created_at=obj.created_at,

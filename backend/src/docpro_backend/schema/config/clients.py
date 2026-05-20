@@ -11,7 +11,6 @@ class Client(Base):
     rut: Mapped[str] = mapped_column(unique=True)
     name: Mapped[str]
     address: Mapped[str | None]
-    city: Mapped[str | None]
     email: Mapped[str | None]
     phone: Mapped[str | None]
     created_at: Mapped[str] = mapped_column(server_default="CURRENT_TIMESTAMP")

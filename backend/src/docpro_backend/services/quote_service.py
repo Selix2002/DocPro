@@ -6,11 +6,15 @@ from docpro_backend.dtos import QuoteInput, QuoteReadModel
 from docpro_backend.repositories.config.company_profile import CompanyProfileRepository
 from docpro_backend.repositories.documents.document_versions import DocumentVersionRepository
 from docpro_backend.repositories.quotes.quotes import QuoteRepository
-from docpro_backend.services.number_service import next_number
+from docpro_backend.services.number_service import next_number, sync_counter
 
 
 def create_quote(session: Session, data: QuoteInput) -> QuoteReadModel:
-    number = next_number(session, "quote")
+    if data.number and data.number.strip():
+        number = data.number.strip()
+        sync_counter(session, "quote", number)
+    else:
+        number = next_number(session, "quote")
     repo = QuoteRepository(session)
     doc, quote = repo.create(
         client_id=data.client_id,

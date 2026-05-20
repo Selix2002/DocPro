@@ -30,7 +30,7 @@ REPORT = ReportReadModel(
     client_name="Shell 21 de Mayo",
     client_rut=None,
     client_address=None,
-    client_city="Punta Arenas",
+
     client_email=None,
     client_phone=None,
     created_at="2023-09-30T10:00:00Z",

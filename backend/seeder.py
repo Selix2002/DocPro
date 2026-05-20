@@ -66,22 +66,22 @@ def _seed_settings(session: Session) -> None:
 def _seed_clients(session: Session) -> dict[str, Client]:
     rows = [
         dict(rut="76.234.567-8", name="Empresa Patagonia SpA",
-             address="Av. Colón 1234",         city="Punta Arenas",
+             address="Av. Colón 1234, Punta Arenas",
              email="admin@patagonia.cl",         phone="+56 61 221 1111"),
         dict(rut="77.123.456-K", name="Industrias del Sur Ltda",
-             address="Ruta 9 Km 12",            city="Punta Arenas",
+             address="Ruta 9 Km 12, Punta Arenas",
              email="contacto@industriasdelsur.cl", phone="+56 61 222 2222"),
         dict(rut="76.987.654-3", name="Constructora Austral",
-             address="Calle Magallanes 456",    city="Punta Arenas",
+             address="Calle Magallanes 456, Punta Arenas",
              email="obras@constructoraaustral.cl", phone="+56 61 223 3333"),
         dict(rut="78.456.789-2", name="Terminal Austral",
-             address="Puerto Natales s/n",      city="Puerto Natales",
+             address="Puerto Natales s/n, Puerto Natales",
              email="admin@terminalaustral.cl",  phone="+56 61 241 4141"),
         dict(rut="76.345.678-9", name="Frigorífico Magallanes",
-             address="Zona Industrial Norte 789", city="Punta Arenas",
+             address="Zona Industrial Norte 789, Punta Arenas",
              email="planta@frigorificomagallanes.cl", phone="+56 61 224 4444"),
         dict(rut="76.111.222-3", name="Shell 21 de Mayo",
-             address="21 de Mayo 501",          city="Punta Arenas",
+             address="21 de Mayo 501, Punta Arenas",
              email="estacion@shell21mayo.cl",   phone="+56 61 225 5555"),
     ]
     clients: dict[str, Client] = {}

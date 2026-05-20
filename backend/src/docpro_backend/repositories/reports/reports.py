@@ -30,7 +30,7 @@ class ReportRepository(BaseRepository[Report]):
         return doc, report, sections, doc.client
 
     def create(self, client_id: int, number: str) -> tuple[Document, Report]:
-        doc = Document(type="report", number=number, client_id=client_id)
+        doc = Document(type="report", number=number, client_id=client_id, status="Borrador")
         self._session.add(doc)
         self._session.flush()
 

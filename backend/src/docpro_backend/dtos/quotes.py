@@ -57,7 +57,6 @@ class QuoteReadModel:
     client_name: str
     client_rut: str
     client_address: str | None
-    client_city: str | None
     client_email: str | None
     client_phone: str | None
     created_at: str
@@ -87,7 +86,6 @@ class QuoteReadModel:
             client_name=client.name,
             client_rut=client.rut,
             client_address=client.address,
-            client_city=client.city,
             client_email=client.email,
             client_phone=client.phone,
             created_at=doc.created_at,
