@@ -6,9 +6,10 @@ from docpro_frontend.settings.widgets.pass_field import PassField
 
 
 _MODELS = [
-    "llama3-70b-8192",
-    "llama3-8b-8192",
-    "mixtral-8x7b-32768",
+    "llama-3.3-70b-versatile",
+    "meta-llama/llama-4-scout-17b-16e-instruct",
+    "openai/gpt-oss-120b",
+    "groq/compound-mini",
 ]
 
 

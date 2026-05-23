@@ -99,7 +99,7 @@ class SettingsService:
     def _load_groq(self, session) -> None:
         repo = SettingRepository(session)
         api_key = self._enc.load_groq_key() or ""
-        model = repo.get_or_none("groq_model") or "llama3-70b-8192"
+        model = repo.get_or_none("groq_model") or "llama-3.3-70b-versatile"
         self._forms.groq_form.set_data(api_key, model)
         if api_key:
             self._widget.content.update_card_status("groq", "Sin validar", "warn")

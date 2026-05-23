@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Signal, Qt
 
 from docpro_frontend.report.styles import report_styles as S
+from docpro_frontend.widgets.ai_improve_button import AiImproveButton
 
 
 class SubsectionCard(QFrame):
@@ -29,6 +30,14 @@ class SubsectionCard(QFrame):
         root.setContentsMargins(12, 10, 12, 12)
         root.setSpacing(8)
 
+        # Body textarea created first so AiImproveButton can reference it
+        self._body = QTextEdit()
+        self._body.setPlaceholderText("Contenido de la subsección…")
+        self._body.setStyleSheet(S.sub_textarea())
+        self._body.setMinimumHeight(80)
+        if content:
+            self._body.setPlainText(content)
+
         # Title row
         title_row = QHBoxLayout()
         title_row.setSpacing(8)
@@ -37,10 +46,7 @@ class SubsectionCard(QFrame):
         self._title_edit.setPlaceholderText("Título de subsección")
         self._title_edit.setStyleSheet(S.section_title_input())
 
-        self._ai_btn = QPushButton("✦  Mejorar redacción")
-        self._ai_btn.setStyleSheet(S.ai_btn_stub())
-        self._ai_btn.setEnabled(False)
-        self._ai_btn.setToolTip("Disponible en Fase 9")
+        self._ai_btn = AiImproveButton(self._body)
 
         del_btn = QPushButton("✕")
         del_btn.setStyleSheet(S.btn_section_delete())
@@ -49,14 +55,6 @@ class SubsectionCard(QFrame):
         title_row.addWidget(self._title_edit, 1)
         title_row.addWidget(self._ai_btn)
         title_row.addWidget(del_btn)
-
-        # Body textarea
-        self._body = QTextEdit()
-        self._body.setPlaceholderText("Contenido de la subsección…")
-        self._body.setStyleSheet(S.sub_textarea())
-        self._body.setMinimumHeight(80)
-        if content:
-            self._body.setPlainText(content)
 
         root.addLayout(title_row)
         root.addWidget(self._body)
@@ -86,4 +84,4 @@ class SubsectionCard(QFrame):
     def set_readonly(self, readonly: bool) -> None:
         self._title_edit.setReadOnly(readonly)
         self._body.setReadOnly(readonly)
-        self._ai_btn.setEnabled(False)
+        self._ai_btn.setEnabled(not readonly)

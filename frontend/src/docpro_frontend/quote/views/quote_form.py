@@ -2,7 +2,7 @@ from datetime import date
 
 from PySide6.QtWidgets import (
     QWidget, QScrollArea, QVBoxLayout, QHBoxLayout, QLabel,
-    QDateEdit, QTextEdit, QPushButton, QFrame, QSizePolicy, QLineEdit,
+    QDateEdit, QTextEdit, QFrame, QSizePolicy, QLineEdit,
 )
 from PySide6.QtCore import Signal, Qt, QDate, QThreadPool
 
@@ -10,6 +10,7 @@ from docpro_frontend.quote.styles import quote_styles as S
 from docpro_frontend.quote.views.client_section import ClientSection
 from docpro_frontend.quote.views.items_table import ItemsTable
 from docpro_frontend.services.worker import Worker
+from docpro_frontend.widgets.ai_improve_button import AiImproveButton
 
 
 class QuoteForm(QWidget):
@@ -147,7 +148,7 @@ class QuoteForm(QWidget):
         self._obs.setReadOnly(readonly)
         self._client.set_readonly(readonly)
         self._items_table.set_readonly(readonly)
-        self._ai_btn.setEnabled(False)
+        self._ai_btn.setEnabled(not readonly)
 
     def reset(self) -> None:
         self._number_input.clear()
@@ -279,6 +280,14 @@ class QuoteForm(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
+        # Textarea created first so AiImproveButton can reference it
+        self._obs = QTextEdit()
+        self._obs.setPlaceholderText(
+            "Ingrese observaciones, condiciones de pago, garantías u otras notas relevantes…"
+        )
+        self._obs.setStyleSheet(S.obs_textarea())
+        self._obs.setMinimumHeight(100)
+
         # Section head
         head = QWidget()
         head.setObjectName("SectionHead")
@@ -293,10 +302,7 @@ class QuoteForm(QWidget):
         sec_label = QLabel("Observaciones")
         sec_label.setStyleSheet(S.section_head_label())
 
-        self._ai_btn = QPushButton("✦  Mejorar redacción")
-        self._ai_btn.setStyleSheet(S.btn_ai_stub())
-        self._ai_btn.setEnabled(False)
-        self._ai_btn.setToolTip("Disponible en Fase 9 (requiere API key de Groq)")
+        self._ai_btn = AiImproveButton(self._obs)
 
         h.addWidget(icon)
         h.addSpacing(8)
@@ -309,13 +315,6 @@ class QuoteForm(QWidget):
         body = QWidget()
         body_layout = QVBoxLayout(body)
         body_layout.setContentsMargins(20, 16, 20, 20)
-
-        self._obs = QTextEdit()
-        self._obs.setPlaceholderText(
-            "Ingrese observaciones, condiciones de pago, garantías u otras notas relevantes…"
-        )
-        self._obs.setStyleSheet(S.obs_textarea())
-        self._obs.setMinimumHeight(100)
         body_layout.addWidget(self._obs)
 
         layout.addWidget(body)

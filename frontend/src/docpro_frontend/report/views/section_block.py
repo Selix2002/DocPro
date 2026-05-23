@@ -6,6 +6,7 @@ from PySide6.QtCore import Signal, Qt
 
 from docpro_frontend.report.styles import report_styles as S
 from docpro_frontend.report.views.subsection_card import SubsectionCard
+from docpro_frontend.widgets.ai_improve_button import AiImproveButton
 
 
 class SectionBlock(QFrame):
@@ -37,6 +38,14 @@ class SectionBlock(QFrame):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
+        # Content textarea created before head so AiImproveButton can reference it
+        self._content_edit = QTextEdit()
+        self._content_edit.setPlaceholderText("Contenido de la sección (opcional)…")
+        self._content_edit.setStyleSheet(S.section_textarea())
+        self._content_edit.setMinimumHeight(80)
+
+        self._ai_btn = AiImproveButton(self._content_edit)
+
         root.addWidget(self._build_head(title))
 
         body = QWidget()
@@ -44,11 +53,15 @@ class SectionBlock(QFrame):
         body_layout.setContentsMargins(20, 16, 20, 20)
         body_layout.setSpacing(12)
 
-        # Section-level content
-        self._content_edit = QTextEdit()
-        self._content_edit.setPlaceholderText("Contenido de la sección (opcional)…")
-        self._content_edit.setStyleSheet(S.section_textarea())
-        self._content_edit.setMinimumHeight(80)
+        # Content label row + AI button
+        content_row = QHBoxLayout()
+        content_lbl = QLabel("Contenido")
+        content_lbl.setStyleSheet(S.field_label())
+        content_row.addWidget(content_lbl)
+        content_row.addStretch()
+        content_row.addWidget(self._ai_btn)
+        body_layout.addLayout(content_row)
+
         body_layout.addWidget(self._content_edit)
 
         # Subsections container
@@ -102,6 +115,7 @@ class SectionBlock(QFrame):
     def set_readonly(self, readonly: bool) -> None:
         self._title_edit.setReadOnly(readonly)
         self._content_edit.setReadOnly(readonly)
+        self._ai_btn.setEnabled(not readonly)
         self._add_sub_btn.setEnabled(not readonly)
         for sub in self._subsections:
             sub.set_readonly(readonly)
