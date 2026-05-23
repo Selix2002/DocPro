@@ -4,7 +4,7 @@ from PySide6.QtCore import Signal
 from docpro_frontend.body.widgets.recent_card import RecentCard
 
 class RecentDocumentsSection(QWidget):
-    document_opened = Signal(int)
+    document_opened = Signal(int, str)  # doc_id, doc_type
 
     def __init__(self, parent=None):
         super().__init__(parent)

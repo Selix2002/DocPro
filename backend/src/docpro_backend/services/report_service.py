@@ -65,8 +65,15 @@ def get_company(session: Session):
 
 
 def get_firma(session: Session) -> tuple[str | None, str | None]:
+    from docpro_backend.repositories.config.company_profile import CompanyProfileRepository
     repo = SettingRepository(session)
-    return repo.get_or_none("firma.nombre"), repo.get_or_none("firma.cargo")
+    nombre = repo.get_or_none("firma.nombre") or None
+    cargo  = repo.get_or_none("firma.cargo")  or None
+    if nombre is None:
+        profile = CompanyProfileRepository(session).get()
+        if profile and profile.name:
+            nombre = profile.name
+    return nombre, cargo
 
 
 def _save_snapshot(session: Session, report: ReportReadModel) -> None:

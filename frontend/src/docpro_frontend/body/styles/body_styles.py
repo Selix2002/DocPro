@@ -26,6 +26,14 @@ BADGE = {
         "background: #DBEAFE; color: #1E40AF; font-size: 15px; "
         "font-weight: 500; padding: 3px 12px; border-radius: 8px;"
     ),
+    "Aprobado": (
+        "background: #D1FAE5; color: #059669; font-size: 15px; "
+        "font-weight: 500; padding: 3px 12px; border-radius: 8px;"
+    ),
+    "Rechazado": (
+        "background: #FEE2E2; color: #991B1B; font-size: 15px; "
+        "font-weight: 500; padding: 3px 12px; border-radius: 8px;"
+    ),
 }
 
 STAT_CARD = """

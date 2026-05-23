@@ -4,11 +4,12 @@ from PySide6.QtWidgets import (
     QWidget, QScrollArea, QVBoxLayout, QHBoxLayout, QLabel,
     QDateEdit, QTextEdit, QPushButton, QFrame, QSizePolicy, QLineEdit,
 )
-from PySide6.QtCore import Signal, Qt, QDate
+from PySide6.QtCore import Signal, Qt, QDate, QThreadPool
 
 from docpro_frontend.quote.styles import quote_styles as S
 from docpro_frontend.quote.views.client_section import ClientSection
 from docpro_frontend.quote.views.items_table import ItemsTable
+from docpro_frontend.services.worker import Worker
 
 
 class QuoteForm(QWidget):
@@ -74,9 +75,21 @@ class QuoteForm(QWidget):
 
         # field_changed wiring
         self._issue_date.dateChanged.connect(lambda _: self.field_changed.emit())
+
+        # Load company profile asynchronously
+        worker = Worker(_load_company)
+        worker.signals.result.connect(self._on_company_loaded)
+        QThreadPool.globalInstance().start(worker)
         self._obs.textChanged.connect(self.field_changed)
         self._items_table.data_changed.connect(self.field_changed)
         self._client.client_data_changed.connect(self.field_changed)
+
+    def _on_company_loaded(self, data: dict) -> None:
+        if not data:
+            return
+        self._company_name_lbl.setText(data.get("name", ""))
+        parts = [p for p in (data.get("phone"), data.get("email")) if p]
+        self._company_detail_lbl.setText("  ·  ".join(parts))
 
     # ── Public API ────────────────────────────────────────────────────────────
 
@@ -170,6 +183,7 @@ class QuoteForm(QWidget):
 
         self._number_input = QLineEdit()
         self._number_input.setPlaceholderText("COT-0001")
+        self._number_input.setFixedWidth(110)
         self._number_input.setStyleSheet(S.meta_number_input())
 
         num_wrap = QHBoxLayout()
@@ -178,11 +192,13 @@ class QuoteForm(QWidget):
         num_wrap.addWidget(self._number_input)
         h.addLayout(num_wrap)
 
-        # Separator
+        # Separator with explicit spacing
+        h.addSpacing(20)
         sep = QLabel()
         sep.setFixedSize(1, 24)
-        sep.setStyleSheet("background: #E5E7EB; margin: 0 20px;")
+        sep.setStyleSheet("background: #E5E7EB;")
         h.addWidget(sep)
+        h.addSpacing(20)
 
         # Fecha emisión
         date_lbl = QLabel("FECHA DE EMISIÓN")
@@ -203,9 +219,18 @@ class QuoteForm(QWidget):
 
         h.addStretch()
 
-        note = QLabel("ⓘ  Datos del emisor desde Configuración")
-        note.setStyleSheet(S.meta_info_note())
-        h.addWidget(note)
+        # Company info block (populated async)
+        self._company_name_lbl = QLabel("")
+        self._company_name_lbl.setStyleSheet(S.meta_company_name())
+        self._company_detail_lbl = QLabel("")
+        self._company_detail_lbl.setStyleSheet(S.meta_company_detail())
+
+        company_block = QVBoxLayout()
+        company_block.setSpacing(2)
+        company_block.setContentsMargins(0, 0, 0, 0)
+        company_block.addWidget(self._company_name_lbl)
+        company_block.addWidget(self._company_detail_lbl)
+        h.addLayout(company_block)
 
         return row
 
@@ -295,3 +320,21 @@ class QuoteForm(QWidget):
 
         layout.addWidget(body)
         return block
+
+
+def _load_company() -> dict:
+    from docpro_backend.db.session import SessionLocal
+    from docpro_backend.schema import CompanyProfile
+    session = SessionLocal()
+    try:
+        profile = session.query(CompanyProfile).first()
+        if profile:
+            return {
+                "name":  profile.name,
+                "city":  profile.city,
+                "email": profile.email,
+                "phone": profile.phone,
+            }
+        return {}
+    finally:
+        session.close()

@@ -2,7 +2,13 @@
 QSS generators for the Quote module.
 Every function reads theme.current at call time — hot-swap safe.
 """
+import os as _os
+
 import docpro_frontend.theme as _th
+
+_CHEVRON_DOWN = _os.path.join(
+    _os.path.dirname(__file__), "..", "..", "resources", "icons", "chevron-down.svg"
+).replace("\\", "/")
 
 
 def _t() -> dict[str, str]:
@@ -57,6 +63,8 @@ def status_pill(status: str) -> str:
         "Borrador":   (t["amber_light"], t["amber_dark"]),
         "Finalizado": (t["green_light"], t["green_text"]),
         "Enviado":    (t["blue_light"],  t["blue_dark"]),
+        "Aprobado":   (t["green_light"], t["green"]),
+        "Rechazado":  (t["red_light"],   t["red_text"]),
     }
     bg, fg = mapping.get(status, (t["border_soft"], t["muted"]))
     return (
@@ -124,6 +132,36 @@ QPushButton {{
 }}
 QPushButton:hover {{ background: {t['amber_dark']}; }}
 QPushButton:disabled {{ background: {t['placeholder']}; }}
+"""
+
+
+def btn_approve() -> str:
+    t = _t()
+    return f"""
+QPushButton {{
+    background: {t['green_light']};
+    border: 1px solid {t['green']};
+    border-radius: 9px;
+    padding: 7px 14px;
+    font-size: 14px; font-weight: 600;
+    color: {t['green_text']};
+}}
+QPushButton:hover {{ background: {t['green']}; color: white; border-color: {t['green']}; }}
+"""
+
+
+def btn_reject() -> str:
+    t = _t()
+    return f"""
+QPushButton {{
+    background: {t['surface']};
+    border: 1px solid {t['border']};
+    border-radius: 9px;
+    padding: 7px 14px;
+    font-size: 14px; font-weight: 600;
+    color: {t['red']};
+}}
+QPushButton:hover {{ background: {t['red_light']}; border-color: #FECACA; }}
 """
 
 
@@ -205,19 +243,44 @@ def meta_info_note() -> str:
     return f"font-size: 12px; color: {t['muted']}; background: transparent;"
 
 
+def meta_company_name() -> str:
+    t = _t()
+    return (
+        f"font-size: 13px; font-weight: 600; color: {t['amber_dark']}; "
+        f"background: transparent;"
+    )
+
+
+def meta_company_detail() -> str:
+    t = _t()
+    return f"font-size: 11px; color: {t['muted']}; background: transparent;"
+
+
 def date_edit() -> str:
     t = _t()
     return f"""
 QDateEdit {{
     border: 1px solid {t['border']};
     border-radius: 8px;
-    padding: 6px 10px;
+    padding: 6px 10px 6px 10px;
     font-size: 14px; font-weight: 600;
     color: {t['text']};
     background: {t['surface']};
 }}
 QDateEdit:focus {{ border-color: {t['amber']}; }}
-QDateEdit::drop-down {{ border: none; width: 20px; }}
+QDateEdit::drop-down {{
+    subcontrol-origin: border;
+    subcontrol-position: center right;
+    width: 28px;
+    border: none;
+    border-left: 1px solid {t['border']};
+    border-top-right-radius: 7px;
+    border-bottom-right-radius: 7px;
+    background: {t['bg']};
+}}
+QDateEdit::drop-down:hover {{ background: {t['border_soft']}; }}
+QDateEdit::drop-down:disabled {{ background: transparent; border-left-color: {t['border_soft']}; }}
+QDateEdit::down-arrow {{ image: url("{_CHEVRON_DOWN}"); width: 12px; height: 12px; }}
 """
 
 
@@ -568,6 +631,74 @@ QPushButton {{
     font-size: 14px; color: {t['muted']};
 }}
 QPushButton:hover {{ background: {t['bg']}; }}
+"""
+
+
+def btn_preview_download() -> str:
+    t = _t()
+    return f"""
+QPushButton {{
+    background: {t['amber_light']};
+    border: 1px solid {t['amber']};
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px; font-weight: 600;
+    color: {t['amber_dark']};
+}}
+QPushButton:hover {{ background: {t['amber']}; color: white; border-color: {t['amber']}; }}
+QPushButton:disabled {{
+    background: {t['border_soft']};
+    border-color: {t['border_soft']};
+    color: {t['placeholder']};
+}}
+"""
+
+
+def preview_loading_label() -> str:
+    t = _t()
+    return f"font-size: 13px; color: {t['muted']}; background: transparent;"
+
+
+def zoom_bar() -> str:
+    t = _t()
+    return f"""
+QWidget#ZoomBar {{
+    background: {t['surface']};
+    border-top: 1px solid {t['border']};
+}}
+"""
+
+
+def btn_zoom() -> str:
+    t = _t()
+    return f"""
+QPushButton {{
+    background: {t['surface']};
+    border: 1px solid {t['border']};
+    border-radius: 6px;
+    min-width: 28px; max-width: 28px;
+    min-height: 28px; max-height: 28px;
+    font-size: 16px; font-weight: 700;
+    color: {t['text_secondary']};
+}}
+QPushButton:hover {{ background: {t['bg']}; color: {t['text']}; }}
+QPushButton:disabled {{ color: {t['placeholder']}; border-color: {t['border_soft']}; }}
+"""
+
+
+def zoom_input() -> str:
+    t = _t()
+    return f"""
+QLineEdit {{
+    border: 1px solid {t['border']};
+    border-radius: 6px;
+    padding: 3px 6px;
+    font-size: 13px; font-weight: 500;
+    color: {t['text']};
+    background: {t['surface']};
+    min-width: 58px; max-width: 58px;
+}}
+QLineEdit:focus {{ border-color: {t['amber']}; }}
 """
 
 

@@ -12,8 +12,8 @@ from docpro_frontend.body.views.drafts_section import DraftsPendingSection
 class BodyWidget(QWidget):
     create_quote_requested = Signal()
     create_report_requested = Signal()
-    document_opened = Signal(int)
-    draft_opened = Signal(int)
+    document_opened = Signal(int, str)  # doc_id, doc_type
+    draft_opened    = Signal(int, str)  # doc_id, doc_type
 
     def __init__(self, parent=None):
         super().__init__(parent)

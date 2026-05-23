@@ -24,7 +24,7 @@ def _fetch() -> dict:
     from sqlalchemy import func
 
     from docpro_backend.db.session import SessionLocal
-    from docpro_backend.schema import Client, Document, Setting
+    from docpro_backend.schema import Client, Document
 
     session = SessionLocal()
     try:
@@ -66,15 +66,7 @@ def _fetch() -> dict:
             .all()
         )
 
-        # Next document numbers from settings
-        def _setting(key: str, default: str) -> str:
-            obj = session.get(Setting, key)
-            return obj.value if obj else default
-
-        quote_prefix  = _setting("quote_prefix",  "COT-")
-        quote_number  = int(_setting("quote_number",  "1"))
-        report_prefix = _setting("report_prefix", "IT-")
-        report_number = int(_setting("report_number", "1"))
+        from docpro_backend.services.number_service import preview_next_number
 
         return {
             "totales": {
@@ -102,13 +94,14 @@ def _fetch() -> dict:
             "borradores": [
                 {
                     "document_id": doc.id,
+                    "doc_type":    "cot" if doc.type == "quote" else "inf",
                     "title":       doc.number,
                     "time":        _rel_time(doc.updated_at),
                 }
                 for doc, client in draft_rows
             ],
-            "siguiente_cot": f"{quote_prefix}{str(quote_number).zfill(4)}",
-            "siguiente_inf": f"{report_prefix}{str(report_number).zfill(4)}",
+            "siguiente_cot": preview_next_number(session, "quote"),
+            "siguiente_inf": preview_next_number(session, "report"),
         }
     finally:
         session.close()

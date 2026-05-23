@@ -343,14 +343,12 @@
       </div>
       {% if node.section.content %}
         {% set lines = node.section.content | content_lines %}
-        {% if lines | length > 1 %}
+        {% if lines %}
         <ul class="item-list">
           {% for line in lines %}
           <li><span class="item-num">{{ loop.index }}.</span><span>{{ line }}</span></li>
           {% endfor %}
         </ul>
-        {% else %}
-        <p class="free-text">{{ node.section.content }}</p>
         {% endif %}
       {% endif %}
       {% for child in node.children %}
@@ -361,14 +359,12 @@
         </div>
         {% if child.section.content %}
           {% set lines = child.section.content | content_lines %}
-          {% if lines | length > 1 %}
+          {% if lines %}
           <ul class="item-list">
             {% for line in lines %}
             <li><span class="item-num">{{ loop.index }}.</span><span>{{ line }}</span></li>
             {% endfor %}
           </ul>
-          {% else %}
-          <p class="free-text">{{ child.section.content }}</p>
           {% endif %}
         {% endif %}
       </div>

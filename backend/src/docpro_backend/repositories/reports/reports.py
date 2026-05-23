@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 
@@ -30,7 +32,11 @@ class ReportRepository(BaseRepository[Report]):
         return doc, report, sections, doc.client
 
     def create(self, client_id: int, number: str) -> tuple[Document, Report]:
-        doc = Document(type="report", number=number, client_id=client_id, status="Borrador")
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        doc = Document(
+            type="report", number=number, client_id=client_id, status="Borrador",
+            created_at=now, updated_at=now,
+        )
         self._session.add(doc)
         self._session.flush()
 

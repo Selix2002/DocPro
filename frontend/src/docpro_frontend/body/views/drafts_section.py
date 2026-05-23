@@ -5,7 +5,7 @@ from PySide6.QtGui import QCursor
 from docpro_frontend.body.styles.body_styles import DRAFTS_PANEL, COUNT_BADGE
 
 class DraftsPendingSection(QWidget):
-    draft_opened = Signal(int)
+    draft_opened = Signal(int, str)  # doc_id, doc_type
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -73,6 +73,7 @@ class DraftsPendingSection(QWidget):
                 title=draft["title"],
                 time=draft["time"],
                 document_id=draft["document_id"],
+                doc_type=draft.get("doc_type", "cot"),
                 show_separator=i < count - 1,
             )
             row.clicked.connect(self.draft_opened)
@@ -80,11 +81,12 @@ class DraftsPendingSection(QWidget):
 
 
 class _DraftRow(QWidget):
-    clicked = Signal(int)
+    clicked = Signal(int, str)  # doc_id, doc_type
 
-    def __init__(self, title: str, time: str, document_id: int, show_separator: bool, parent=None):
+    def __init__(self, title: str, time: str, document_id: int, doc_type: str, show_separator: bool, parent=None):
         super().__init__(parent)
         self._document_id = document_id
+        self._doc_type = doc_type
         sep_style = "border-bottom: 1px solid #F9FAFB;" if show_separator else ""
         self._style_normal = f"background: transparent; {sep_style}"
         self._style_hover = f"background: #FAFAFA; {sep_style}"
@@ -96,8 +98,10 @@ class _DraftRow(QWidget):
         layout.setContentsMargins(21, 14, 21, 14)
         layout.setSpacing(12)
 
-        icon = QLabel("🧾")
-        icon.setStyleSheet("font-size: 23px; color: #B45309; background: transparent;")
+        icon_char  = "🧾" if doc_type == "cot" else "📋"
+        icon_color = "#B45309" if doc_type == "cot" else "#1D4ED8"
+        icon = QLabel(icon_char)
+        icon.setStyleSheet(f"font-size: 23px; color: {icon_color}; background: transparent;")
         icon.setFixedWidth(27)
 
         title_label = QLabel(title)
@@ -122,5 +126,5 @@ class _DraftRow(QWidget):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
-            self.clicked.emit(self._document_id)
+            self.clicked.emit(self._document_id, self._doc_type)
         super().mousePressEvent(event)

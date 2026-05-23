@@ -7,8 +7,10 @@ from docpro_backend.db.engine import get_db_path
 from docpro_frontend.dashboard_widget import DashboardWidget
 from docpro_frontend.services.settings_service import SettingsService
 from docpro_frontend.services.quote_service import QuoteService
+from docpro_frontend.services.report_service import ReportService
 from docpro_frontend.settings.views.settings_widget import SettingsWidget
 from docpro_frontend.quote.views.quote_widget import QuoteWidget
+from docpro_frontend.report.views.report_widget import ReportWidget
 
 _GLOBAL_STYLE = """
 * {
@@ -55,20 +57,23 @@ def main() -> None:
     window.setMinimumSize(960, 600)
 
     stack = QStackedWidget()
-    dashboard = DashboardWidget()
-    settings  = SettingsWidget()
-    quote_wgt = QuoteWidget()
+    dashboard  = DashboardWidget()
+    settings   = SettingsWidget()
+    quote_wgt  = QuoteWidget()
+    report_wgt = ReportWidget()
 
     stack.addWidget(dashboard)
     stack.addWidget(settings)
     stack.addWidget(quote_wgt)
+    stack.addWidget(report_wgt)
     stack.setCurrentWidget(dashboard)
     window.setCentralWidget(stack)
 
     settings_svc = SettingsService(settings, DB_PATH)
     settings_svc.load_all()
 
-    quote_svc = QuoteService(quote_wgt)
+    quote_svc  = QuoteService(quote_wgt)
+    report_svc = ReportService(report_wgt)
 
     def go_to_settings():
         settings_svc.load_all()
@@ -85,6 +90,14 @@ def main() -> None:
     def open_existing_quote(doc_id: int):
         quote_svc.open_existing(doc_id)
         stack.setCurrentWidget(quote_wgt)
+
+    def open_new_report():
+        report_svc.open_new()
+        stack.setCurrentWidget(report_wgt)
+
+    def open_existing_report(doc_id: int):
+        report_svc.open_existing(doc_id)
+        stack.setCurrentWidget(report_wgt)
 
     def back_to_dashboard():
         if settings_svc.has_unsaved_changes():
@@ -115,19 +128,29 @@ def main() -> None:
         go_to_dashboard()
 
     dashboard.tab_changed.connect(lambda name: print(f"[nav] tab → {name}"))
-    dashboard.new_report_requested.connect(lambda: print("[nav] nuevo informe"))
     dashboard.import_pdf_requested.connect(lambda: print("[nav] importar PDF"))
 
+    def open_existing_document(doc_id: int, doc_type: str):
+        if doc_type == "inf":
+            open_existing_report(doc_id)
+        else:
+            open_existing_quote(doc_id)
+
+    dashboard.new_client_requested.connect(lambda: None)
     dashboard.new_quote_requested.connect(open_new_quote)
     dashboard.create_quote_requested.connect(open_new_quote)
-    dashboard.draft_opened.connect(open_existing_quote)
-    dashboard.document_opened.connect(open_existing_quote)
+    dashboard.draft_opened.connect(open_existing_document)
+    dashboard.document_opened.connect(open_existing_document)
 
     dashboard.settings_requested.connect(go_to_settings)
     settings.back_requested.connect(back_to_dashboard)
     settings.save_requested.connect(go_to_dashboard)
 
+    dashboard.new_report_requested.connect(open_new_report)
+    dashboard.create_report_requested.connect(open_new_report)
+
     quote_svc.navigation_back.connect(go_to_dashboard)
+    report_svc.navigation_back.connect(go_to_dashboard)
 
     window.show()
     sys.exit(app.exec())

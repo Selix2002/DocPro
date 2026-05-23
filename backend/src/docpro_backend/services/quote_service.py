@@ -67,6 +67,22 @@ def finalize_quote(session: Session, document_id: int) -> QuoteReadModel:
     return result
 
 
+def approve_quote(session: Session, document_id: int) -> QuoteReadModel:
+    from docpro_backend.repositories.documents.documents import DocumentRepository
+    DocumentRepository(session).update_status(document_id, "Aprobado")
+    repo = QuoteRepository(session)
+    doc, quote, items, client = repo.get_full(document_id)
+    return QuoteReadModel.from_query(doc, quote, items, client)
+
+
+def reject_quote(session: Session, document_id: int) -> QuoteReadModel:
+    from docpro_backend.repositories.documents.documents import DocumentRepository
+    DocumentRepository(session).update_status(document_id, "Rechazado")
+    repo = QuoteRepository(session)
+    doc, quote, items, client = repo.get_full(document_id)
+    return QuoteReadModel.from_query(doc, quote, items, client)
+
+
 def get_quote(session: Session, document_id: int) -> QuoteReadModel:
     repo = QuoteRepository(session)
     doc, quote, items, client = repo.get_full(document_id)

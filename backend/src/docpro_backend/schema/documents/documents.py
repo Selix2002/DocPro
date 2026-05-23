@@ -11,7 +11,7 @@ class Document(Base):
     __table_args__ = (
         CheckConstraint("type IN ('quote', 'report')", name="ck_documents_type"),
         CheckConstraint(
-            "status IN ('Borrador', 'Finalizado', 'Enviado')",
+            "status IN ('Borrador', 'Finalizado', 'Enviado', 'Aprobado', 'Rechazado')",
             name="ck_documents_status",
         ),
         Index("idx_documents_client_status", "client_id", "status", "updated_at"),

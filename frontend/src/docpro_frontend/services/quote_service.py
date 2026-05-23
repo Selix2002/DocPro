@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import tempfile
 from pathlib import Path
 
 from PySide6.QtCore import QObject, QThreadPool, QTimer, Signal
-from PySide6.QtWidgets import QMessageBox, QFileDialog
+from PySide6.QtGui import QKeySequence, QShortcut
+from PySide6.QtWidgets import QFileDialog, QMessageBox
 
 from docpro_frontend.quote.views.quote_widget import QuoteWidget
 from docpro_frontend.services.worker import Worker
@@ -28,6 +30,7 @@ class QuoteService(QObject):
         self._widget  = widget
         self._header  = widget.header
         self._form    = widget.form
+        self._preview = widget.preview
 
         self._doc_id:            int | None = None
         self._current_client_id: int | None = None
@@ -35,6 +38,9 @@ class QuoteService(QObject):
         self._pending_back:      bool       = False
         self._pending_finalize:  bool       = False
         self._loading:           bool       = False
+        self._doc_number:        str        = ""
+        self._preview_locked:    bool       = False
+        self._preview_slot:      int        = 0
 
         self._autosave_timer = QTimer(self)
         self._autosave_timer.setSingleShot(True)
@@ -52,11 +58,15 @@ class QuoteService(QObject):
         self._status            = "Borrador"
         self._pending_back      = False
         self._pending_finalize  = False
+        self._doc_number        = ""
+        self._preview_locked    = False
+        self._preview_slot      = 0
         self._form.reset()
         self._form.set_readonly(False)
         self._header.set_document_number("—")
         self._header.set_status("Borrador")
         self._header.set_autosave_state("idle")
+        self._preview.clear()
 
         worker = Worker(_preview_next_number)
         worker.signals.result.connect(self._on_preview_loaded)
@@ -71,9 +81,13 @@ class QuoteService(QObject):
         self._pending_back      = False
         self._pending_finalize  = False
         self._loading           = True
+        self._doc_number        = ""
+        self._preview_locked    = False
+        self._preview_slot      = 0
         self._header.set_document_number("…")
         self._header.set_autosave_state("idle")
         self._form.reset()
+        self._preview.clear()
 
         worker = Worker(lambda: _load_quote(doc_id))
         worker.signals.result.connect(self._on_loaded)
@@ -89,6 +103,10 @@ class QuoteService(QObject):
         self._header.finalize_requested.connect(self._on_finalize)
         self._header.delete_requested.connect(self._on_delete)
         self._header.generate_pdf_requested.connect(self._on_generate_pdf)
+        self._header.approve_requested.connect(self._on_approve)
+        self._header.reject_requested.connect(self._on_reject)
+        self._ctrl_s = QShortcut(QKeySequence.StandardKey.Save, self._widget)
+        self._ctrl_s.activated.connect(self._on_ctrl_s)
 
     # ── Autosave ──────────────────────────────────────────────────────────────
 
@@ -134,7 +152,8 @@ class QuoteService(QObject):
             self._header.set_document_number(number)
 
     def _on_created(self, rm) -> None:
-        self._doc_id = rm.document_id
+        self._doc_id     = rm.document_id
+        self._doc_number = rm.number
         self._form.set_number(rm.number)
         self._form.lock_number()
         self._header.set_document_number(rm.number)
@@ -148,6 +167,7 @@ class QuoteService(QObject):
     def _on_client_and_quote_created(self, result: dict) -> None:
         self._current_client_id = result["client_id"]
         self._doc_id            = result["doc_id"]
+        self._doc_number        = result["number"]
         self._form.set_number(result["number"])
         self._form.lock_number()
         self._header.set_document_number(result["number"])
@@ -172,6 +192,7 @@ class QuoteService(QObject):
     def _on_loaded(self, rm) -> None:
         self._current_client_id = rm.client_id
         self._status            = rm.status
+        self._doc_number        = rm.number
         self._form.set_data(rm)
         self._form.set_number(rm.number)
         self._header.set_document_number(rm.number)
@@ -180,6 +201,7 @@ class QuoteService(QObject):
         if rm.status != "Borrador":
             self._form.set_readonly(True)
         self._loading = False
+        self._trigger_preview_render(self._doc_id)
 
     def _on_load_error(self, msg: str) -> None:
         self._loading = False
@@ -252,6 +274,52 @@ class QuoteService(QObject):
         self._header.set_autosave_state("saved")
         self._form.set_readonly(True)
 
+    def _on_approve(self) -> None:
+        if self._doc_id is None:
+            return
+        dlg = QMessageBox(self._widget)
+        dlg.setWindowTitle("Aprobar cotización")
+        dlg.setText("¿Aprobar esta cotización?")
+        dlg.setInformativeText("Esta acción es definitiva y no se puede deshacer.")
+        dlg.setIcon(QMessageBox.Icon.Question)
+        dlg.setStyleSheet(_DIALOG_STYLE)
+        confirm = dlg.addButton("Aprobar", QMessageBox.ButtonRole.AcceptRole)
+        dlg.addButton("Cancelar", QMessageBox.ButtonRole.RejectRole)
+        dlg.setDefaultButton(confirm)
+        dlg.exec()
+        if dlg.clickedButton() is not confirm:
+            return
+        doc_id = self._doc_id
+        worker = Worker(lambda: _approve_quote(doc_id))
+        worker.signals.result.connect(self._on_resolved)
+        worker.signals.error.connect(lambda msg: print(f"[quote] approve error: {msg}"))
+        QThreadPool.globalInstance().start(worker)
+
+    def _on_reject(self) -> None:
+        if self._doc_id is None:
+            return
+        dlg = QMessageBox(self._widget)
+        dlg.setWindowTitle("Rechazar cotización")
+        dlg.setText("¿Rechazar esta cotización?")
+        dlg.setInformativeText("Esta acción es definitiva y no se puede deshacer.")
+        dlg.setIcon(QMessageBox.Icon.Warning)
+        dlg.setStyleSheet(_DIALOG_STYLE)
+        confirm = dlg.addButton("Rechazar", QMessageBox.ButtonRole.DestructiveRole)
+        dlg.addButton("Cancelar", QMessageBox.ButtonRole.RejectRole)
+        dlg.setDefaultButton(confirm)
+        dlg.exec()
+        if dlg.clickedButton() is not confirm:
+            return
+        doc_id = self._doc_id
+        worker = Worker(lambda: _reject_quote(doc_id))
+        worker.signals.result.connect(self._on_resolved)
+        worker.signals.error.connect(lambda msg: print(f"[quote] reject error: {msg}"))
+        QThreadPool.globalInstance().start(worker)
+
+    def _on_resolved(self, rm) -> None:
+        self._status = rm.status
+        self._header.set_status(rm.status)
+
     def _on_delete(self) -> None:
         if self._doc_id is None:
             self._do_navigate_back()
@@ -305,7 +373,33 @@ class QuoteService(QObject):
         self._pending_back = False
         self.navigation_back.emit()
 
-    # ── PDF generation ────────────────────────────────────────────────────────
+    # ── Preview render (Ctrl+S) ───────────────────────────────────────────────
+
+    def _on_ctrl_s(self) -> None:
+        if self._doc_id is None or self._preview_locked or self._loading:
+            return
+        self._trigger_preview_render(self._doc_id)
+
+    def _trigger_preview_render(self, doc_id: int) -> None:
+        self._preview_locked = True
+        next_slot = 1 - self._preview_slot
+        self._preview.set_loading(True)
+        worker = Worker(lambda: _render_pdf_preview(doc_id, next_slot))
+        worker.signals.result.connect(self._on_preview_ready)
+        worker.signals.error.connect(self._on_preview_error)
+        QThreadPool.globalInstance().start(worker)
+
+    def _on_preview_ready(self, path: Path) -> None:
+        self._preview_slot = 1 - self._preview_slot
+        self._preview.load_pdf(path)
+        self._preview_locked = False
+
+    def _on_preview_error(self, msg: str) -> None:
+        self._preview.set_loading(False)
+        self._preview_locked = False
+        print(f"[quote] preview error: {msg}")
+
+    # ── PDF export ────────────────────────────────────────────────────────────
 
     def _on_generate_pdf(self) -> None:
         if self._doc_id is None:
@@ -315,23 +409,28 @@ class QuoteService(QObject):
                 "Guarda la cotización antes de exportar el PDF.",
             )
             return
-
-        doc_id = self._doc_id
-        worker = Worker(lambda: _render_pdf(doc_id))
-        worker.signals.result.connect(self._on_pdf_ready)
+        default_dir = Path.home() / "Documents" / "DocPro"
+        default_dir.mkdir(parents=True, exist_ok=True)
+        default_name = f"{self._doc_number}.pdf" if self._doc_number else "cotizacion.pdf"
+        chosen, _ = QFileDialog.getSaveFileName(
+            self._widget,
+            "Guardar PDF",
+            str(default_dir / default_name),
+            "PDF (*.pdf)",
+        )
+        if not chosen:
+            return
+        doc_id      = self._doc_id
+        chosen_path = Path(chosen)
+        worker = Worker(lambda: _render_pdf_to_path(doc_id, chosen_path))
+        worker.signals.result.connect(lambda _: self._header.set_autosave_state("saved"))
         worker.signals.error.connect(self._on_pdf_error)
         self._header.set_autosave_state("saving")
         QThreadPool.globalInstance().start(worker)
 
-    def _on_pdf_ready(self, path: Path) -> None:
-        self._header.set_autosave_state("saved")
-        from PySide6.QtGui import QDesktopServices
-        from PySide6.QtCore import QUrl
-        QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
-
     def _on_pdf_error(self, msg: str) -> None:
         self._header.set_autosave_state("error")
-        QMessageBox.critical(self._widget, "Error al generar PDF", msg)
+        QMessageBox.critical(self._widget, "Error al exportar PDF", msg)
 
 
 # ── Worker functions (run in thread pool, no Qt objects) ──────────────────────
@@ -531,6 +630,36 @@ def _create_client_and_quote(client_data: dict, form_data: dict) -> dict:
         session.close()
 
 
+def _approve_quote(doc_id: int):
+    from docpro_backend.db.session import SessionLocal
+    from docpro_backend.services.quote_service import approve_quote
+    session = SessionLocal()
+    try:
+        result = approve_quote(session, doc_id)
+        session.commit()
+        return result
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+def _reject_quote(doc_id: int):
+    from docpro_backend.db.session import SessionLocal
+    from docpro_backend.services.quote_service import reject_quote
+    session = SessionLocal()
+    try:
+        result = reject_quote(session, doc_id)
+        session.commit()
+        return result
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
 def _lookup_client(rut: str):
     from docpro_backend.db.session import SessionLocal
     from docpro_backend.repositories.config.clients import ClientRepository
@@ -566,13 +695,15 @@ def _create_client(data: dict):
         session.close()
 
 
-def _render_pdf(doc_id: int) -> Path:
+def _render_pdf_preview(doc_id: int, slot: int) -> Path:
+    import tempfile as _tmp
     from docpro_backend.db.session import SessionLocal
     from docpro_backend.services.quote_service import get_quote, get_company
-    from docpro_backend.services.pdf_service import render_quote_pdf, quote_pdf_filename
+    from docpro_backend.services.pdf_service import render_quote_pdf
 
-    out_dir = Path.home() / "Documents" / "DocPro"
-    out_dir.mkdir(parents=True, exist_ok=True)
+    tmp_dir = Path(_tmp.gettempdir()) / "docpro"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    path = tmp_dir / f"preview_{doc_id}_{slot}.pdf"
 
     session = SessionLocal()
     try:
@@ -581,8 +712,22 @@ def _render_pdf(doc_id: int) -> Path:
     finally:
         session.close()
 
-    filename = quote_pdf_filename(quote)
-    path = out_dir / filename
+    render_quote_pdf(quote, company, path)
+    return path
+
+
+def _render_pdf_to_path(doc_id: int, path: Path) -> Path:
+    from docpro_backend.db.session import SessionLocal
+    from docpro_backend.services.quote_service import get_quote, get_company
+    from docpro_backend.services.pdf_service import render_quote_pdf
+
+    session = SessionLocal()
+    try:
+        quote   = get_quote(session, doc_id)
+        company = get_company(session)
+    finally:
+        session.close()
+
     render_quote_pdf(quote, company, path)
     return path
 

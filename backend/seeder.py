@@ -49,12 +49,10 @@ def _seed_company_profile(session: Session) -> None:
 
 def _seed_settings(session: Session) -> None:
     for key, value in [
-        ("firma.nombre",   "Dagoberto Muñoz"),
-        ("firma.cargo",    "Técnico Refrigerante"),
-        ("quote.prefix",   "COT-"),
-        ("quote.counter",  "23"),
-        ("report.prefix",  "IT-"),
-        ("report.counter", "41"),
+        ("quote_prefix",  "COT-"),
+        ("quote_number",  "23"),
+        ("report_prefix", "IT-"),
+        ("report_number", "41"),
     ]:
         session.add(Setting(key=key, value=value))
 

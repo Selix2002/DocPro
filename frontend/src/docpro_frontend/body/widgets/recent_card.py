@@ -6,7 +6,7 @@ from docpro_frontend.body.styles.body_styles import RECENT_CARD_NORMAL, RECENT_C
 
 
 class RecentCard(QFrame):
-    clicked = Signal(int)
+    clicked = Signal(int, str)  # doc_id, doc_type
 
     def __init__(
         self,
@@ -19,6 +19,7 @@ class RecentCard(QFrame):
     ):
         super().__init__(parent)
         self._document_id = document_id
+        self._doc_type = doc_type
         self.setStyleSheet(RECENT_CARD_NORMAL)
         self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
@@ -71,5 +72,5 @@ class RecentCard(QFrame):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
-            self.clicked.emit(self._document_id)
+            self.clicked.emit(self._document_id, self._doc_type)
         super().mousePressEvent(event)

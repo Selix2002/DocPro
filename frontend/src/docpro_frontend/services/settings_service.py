@@ -60,13 +60,15 @@ class SettingsService:
 
     def _load_perfil(self, session) -> None:
         profile = CompanyProfileRepository(session).get()
-        if profile:
-            self._forms.company_form.set_data(
-                name=profile.name or "",
-                city=profile.city or "",
-                phone=profile.phone or "",
-                email=profile.email or "",
-            )
+        repo = SettingRepository(session)
+        self._forms.company_form.set_data(
+            name=profile.name or "" if profile else "",
+            city=profile.city or "" if profile else "",
+            phone=profile.phone or "" if profile else "",
+            email=profile.email or "" if profile else "",
+            firma_nombre=repo.get_or_none("firma.nombre") or "",
+            firma_cargo=repo.get_or_none("firma.cargo") or "",
+        )
 
     def _load_numeracion(self, session) -> None:
         repo = SettingRepository(session)
@@ -145,6 +147,9 @@ class SettingsService:
             phone=data["phone"],
             email=data["email"],
         )
+        repo = SettingRepository(session)
+        repo.set("firma.nombre", data.get("firma_nombre") or "")
+        repo.set("firma.cargo",  data.get("firma_cargo")  or "")
 
     def _save_numeracion(self, session) -> None:
         data = self._forms.numbering_form.get_data()

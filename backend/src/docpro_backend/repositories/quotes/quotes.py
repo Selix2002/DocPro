@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 
@@ -37,7 +39,11 @@ class QuoteRepository(BaseRepository[Quote]):
         observations: str | None = None,
         items: list[dict] | None = None,
     ) -> tuple[Document, Quote]:
-        doc = Document(type="quote", number=number, client_id=client_id, status="Borrador")
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        doc = Document(
+            type="quote", number=number, client_id=client_id, status="Borrador",
+            created_at=now, updated_at=now,
+        )
         self._session.add(doc)
         self._session.flush()
 

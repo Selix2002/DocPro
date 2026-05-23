@@ -3,7 +3,7 @@ from PySide6.QtCore import Signal, Qt
 
 from docpro_frontend.header.styles.header_styles import TAB_BTN
 
-_TABS = ["Inicio", "Cotizaciones", "Informes", "Historial", "Clientes"]
+_TABS = ["Inicio", "Historial", "Clientes"]
 
 
 class TabBar(QWidget):

@@ -12,12 +12,16 @@ class QuoteHeader(QWidget):
         finalize_requested
         delete_requested
         generate_pdf_requested
+        approve_requested
+        reject_requested
     """
 
-    back_requested        = Signal()
-    finalize_requested    = Signal()
-    delete_requested      = Signal()
+    back_requested         = Signal()
+    finalize_requested     = Signal()
+    delete_requested       = Signal()
     generate_pdf_requested = Signal()
+    approve_requested      = Signal()
+    reject_requested       = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -101,6 +105,25 @@ class QuoteHeader(QWidget):
         self._finalize_btn.clicked.connect(self.finalize_requested)
         h.addWidget(self._finalize_btn)
 
+        self._sep3 = self._make_sep()
+        self._sep3.setVisible(False)
+        h.addSpacing(8)
+        h.addWidget(self._sep3)
+        h.addSpacing(8)
+
+        self._approve_btn = QPushButton("✓ Aprobar")
+        self._approve_btn.setStyleSheet(S.btn_approve())
+        self._approve_btn.clicked.connect(self.approve_requested)
+        self._approve_btn.setVisible(False)
+        h.addWidget(self._approve_btn)
+        h.addSpacing(8)
+
+        self._reject_btn = QPushButton("✗ Rechazar")
+        self._reject_btn.setStyleSheet(S.btn_reject())
+        self._reject_btn.clicked.connect(self.reject_requested)
+        self._reject_btn.setVisible(False)
+        h.addWidget(self._reject_btn)
+
     # ── Public ────────────────────────────────────────────────────────────────
 
     def set_document_number(self, number: str) -> None:
@@ -110,8 +133,12 @@ class QuoteHeader(QWidget):
         self._status_pill.setText(status)
         self._status_pill.setStyleSheet(S.status_pill(status))
         is_borrador = status == "Borrador"
+        is_enviado  = status == "Enviado"
         self._finalize_btn.setVisible(is_borrador)
         self._delete_btn.setVisible(is_borrador)
+        self._sep3.setVisible(is_enviado)
+        self._approve_btn.setVisible(is_enviado)
+        self._reject_btn.setVisible(is_enviado)
 
     def set_autosave_state(self, state: str) -> None:
         """state: 'saving' | 'saved' | 'error' | 'idle'"""
