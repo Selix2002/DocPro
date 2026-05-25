@@ -1,0 +1,23 @@
+docpro-requerimientos.md
+propuesta-docpro.html
+CLAUDE.md
+docpro-db-propuesta-b-modificada.md
+docpro-schema-workbench.sql
+**/__pycache__/**
+*.db
+.venv/
+backend/tmp/
+*.html
+
+# Build artifacts
+build/
+dist/
+
+# Claude Code internals
+.claude/
+
+# OAuth credentials & secrets — never commit
+credentials.json
+*.apps.googleusercontent.com.json
+*.enc
+secret.key
