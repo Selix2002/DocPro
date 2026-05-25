@@ -8,6 +8,7 @@ docpro-schema-workbench.sql
 .venv/
 backend/tmp/
 *.html
+!privacy-policy.html
 
 # Build artifacts
 build/
