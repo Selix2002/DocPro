@@ -8,7 +8,6 @@ from docpro_frontend.settings.views.numbering_form import NumberingForm
 from docpro_frontend.settings.views.appearance_form import AppearanceForm
 from docpro_frontend.settings.views.gmail_form import GmailForm
 from docpro_frontend.settings.views.groq_form import GroqForm
-from docpro_frontend.settings.views.templates_form import TemplatesForm
 from docpro_frontend.settings.views.backup_form import BackupForm
 
 
@@ -49,13 +48,6 @@ SECTION_META: dict[str, dict] = {
         "page_sub": "Activa el asistente de redacción con Groq para todos los campos de texto libre.",
         "status_text": "Sin validar", "status_state": "warn",
     },
-    "plantillas": {
-        "icon": "☰", "color": "blue",
-        "name": "Plantillas de sección",
-        "subtitle": "Secciones guardadas reutilizables al crear informes técnicos",
-        "page_sub": "Guarda bloques de texto frecuentes para reutilizarlos en nuevos informes.",
-        "status_text": "", "status_state": "",
-    },
     "backup": {
         "icon": "💾", "color": "gray",
         "name": "Backup y restauración",
@@ -65,7 +57,7 @@ SECTION_META: dict[str, dict] = {
     },
 }
 
-_ORDER = ["perfil", "numeracion", "apariencia", "gmail", "groq", "plantillas", "backup"]
+_ORDER = ["perfil", "numeracion", "apariencia", "gmail", "groq", "backup"]
 
 
 class ContentArea(QWidget):
@@ -121,7 +113,6 @@ class ContentArea(QWidget):
         self._appearance = AppearanceForm()
         self._gmail      = GmailForm()
         self._groq       = GroqForm()
-        self._templates  = TemplatesForm()
         self._backup     = BackupForm()
 
         _forms: dict[str, QWidget] = {
@@ -130,7 +121,6 @@ class ContentArea(QWidget):
             "apariencia": self._appearance,
             "gmail":      self._gmail,
             "groq":       self._groq,
-            "plantillas": self._templates,
             "backup":     self._backup,
         }
 
@@ -192,10 +182,6 @@ class ContentArea(QWidget):
     @property
     def groq_form(self) -> GroqForm:
         return self._groq
-
-    @property
-    def templates_form(self) -> TemplatesForm:
-        return self._templates
 
     @property
     def backup_form(self) -> BackupForm:

@@ -1,5 +1,7 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame
 from PySide6.QtCore import Signal, Qt
+from PySide6.QtWidgets import (
+    QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget,
+)
 
 from docpro_frontend.clients.styles.clients_styles import TABLE_PANEL
 from docpro_frontend.clients.widgets.clients_row import ClientsRow
@@ -9,9 +11,14 @@ _HEADER_LABEL = (
     "color: #6B7280; background: transparent;"
 )
 
+# Width for the two action buttons (+ and ✕), each 36px with 4px spacing = 76px
+_ACTIONS_W = 76
+
 
 class ClientsTable(QWidget):
-    new_document_requested = Signal(int)  # client_id
+    new_document_requested = Signal(int)        # client_id
+    delete_requested       = Signal(int, str)   # client_id, client_name
+    edit_requested         = Signal(int, dict)  # client_id, row_data
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -81,7 +88,7 @@ class ClientsTable(QWidget):
         layout.addWidget(docs_h)
 
         spacer_h = _h("")
-        spacer_h.setFixedWidth(36)
+        spacer_h.setFixedWidth(_ACTIONS_W)
         layout.addWidget(spacer_h)
 
         return header
@@ -100,4 +107,6 @@ class ClientsTable(QWidget):
         for i, data in enumerate(rows):
             row = ClientsRow(row=data, is_last=(i == last))
             row.new_doc_clicked.connect(self.new_document_requested)
+            row.delete_requested.connect(self.delete_requested)
+            row.edit_requested.connect(self.edit_requested)
             self._body_layout.addWidget(row)

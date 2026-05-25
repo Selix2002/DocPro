@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel
 from PySide6.QtCore import Signal
 
 from docpro_frontend.settings.styles import settings_styles as S
@@ -6,9 +6,8 @@ from docpro_frontend.settings.widgets.template_row import TemplateRow
 
 
 class TemplatesForm(QWidget):
-    """Form block: Plantillas de sección — list of saved templates + add button."""
+    """Form block: Plantillas de sección — list of saved templates."""
 
-    add_template_requested = Signal()
     delete_template_requested = Signal(int)
     edit_template_requested = Signal(int)
 
@@ -27,11 +26,6 @@ class TemplatesForm(QWidget):
         self._list_layout.setContentsMargins(0, 0, 0, 0)
         self._list_layout.setSpacing(6)
         layout.addWidget(self._list_container)
-
-        self._add_btn = QPushButton("+ Nueva plantilla")
-        self._add_btn.setStyleSheet(S.btn_add_template())
-        self._add_btn.clicked.connect(self.add_template_requested)
-        layout.addWidget(self._add_btn)
 
     # ── Public ────────────────────────────────────────────────────────
 

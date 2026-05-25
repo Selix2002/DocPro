@@ -1,5 +1,5 @@
-from PySide6.QtWidgets import QWidget, QGridLayout, QVBoxLayout, QLabel
 from PySide6.QtCore import Signal, Qt
+from PySide6.QtWidgets import QGridLayout, QLabel, QVBoxLayout, QWidget
 
 from docpro_frontend.clients.widgets.client_card import ClientCard
 
@@ -7,7 +7,9 @@ _COLUMNS = 3
 
 
 class ClientsGrid(QWidget):
-    new_document_requested = Signal(int)  # client_id
+    new_document_requested = Signal(int)        # client_id
+    delete_requested       = Signal(int, str)   # client_id, client_name
+    edit_requested         = Signal(int, dict)  # client_id, row_data
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -45,4 +47,6 @@ class ClientsGrid(QWidget):
             card = ClientCard()
             card.set_data(row)
             card.new_doc_clicked.connect(self.new_document_requested)
+            card.delete_requested.connect(self.delete_requested)
+            card.edit_requested.connect(self.edit_requested)
             self._grid.addWidget(card, i // _COLUMNS, i % _COLUMNS)

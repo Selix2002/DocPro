@@ -157,3 +157,77 @@ def _created_at_label(dt_str: str) -> str:
         return f"{_MONTH_ES[dt.month]} {dt.year}"
     except (ValueError, KeyError):
         return ""
+
+
+# ---------------------------------------------------------------------------
+# Mutation workers — run in thread pool, called from DashboardWidget
+# ---------------------------------------------------------------------------
+
+def _create_client(data: dict) -> None:
+    from docpro_backend.db.session import SessionLocal
+    from docpro_backend.repositories.config.clients import ClientRepository
+
+    session = SessionLocal()
+    try:
+        ClientRepository(session).create(
+            rut=data["rut"],
+            name=data["name"],
+            address=data.get("address"),
+            email=data.get("email"),
+            phone=data.get("phone"),
+        )
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+def _update_client(client_id: int, data: dict) -> None:
+    from docpro_backend.db.session import SessionLocal
+    from docpro_backend.repositories.config.clients import ClientRepository
+
+    session = SessionLocal()
+    try:
+        ClientRepository(session).update(
+            client_id,
+            name=data["name"],
+            address=data.get("address"),
+            email=data.get("email"),
+            phone=data.get("phone"),
+        )
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+def _delete_client(client_id: int) -> None:
+    from sqlalchemy import func
+
+    from docpro_backend.db.session import SessionLocal
+    from docpro_backend.repositories.config.clients import ClientRepository
+    from docpro_backend.schema.documents.documents import Document
+
+    session = SessionLocal()
+    try:
+        doc_count = (
+            session.query(func.count(Document.id))
+            .filter(Document.client_id == client_id)
+            .scalar() or 0
+        )
+        if doc_count > 0:
+            raise ValueError(
+                f"Este cliente tiene {doc_count} documento{'s' if doc_count != 1 else ''}. "
+                "Elimina primero sus documentos antes de eliminar el cliente."
+            )
+        ClientRepository(session).delete(client_id)
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()

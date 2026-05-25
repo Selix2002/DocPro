@@ -21,10 +21,13 @@ class ReportHeader(QWidget):
         set_title(str)
     """
 
-    back_requested         = Signal()
-    finalize_requested     = Signal()
-    delete_requested       = Signal()
-    generate_pdf_requested = Signal()
+    back_requested          = Signal()
+    finalize_requested      = Signal()
+    delete_requested        = Signal()
+    generate_pdf_requested  = Signal()
+    send_requested          = Signal()
+    number_change_requested = Signal(str)
+    duplicate_requested     = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -50,11 +53,22 @@ class ReportHeader(QWidget):
 
         self._number_lbl = QLabel("—")
         self._number_lbl.setStyleSheet(S.doc_number_label())
+        self._current_number = "—"
+
+        self._edit_num_btn = QPushButton("✎")
+        self._edit_num_btn.setStyleSheet(S.doc_number_edit_btn())
+        self._edit_num_btn.setFixedSize(22, 22)
+        self._edit_num_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._edit_num_btn.setToolTip("Editar número")
+        self._edit_num_btn.setVisible(False)
+        self._edit_num_btn.clicked.connect(self._on_edit_number)
 
         h.addWidget(type_pill)
         h.addSpacing(10)
         h.addWidget(self._number_lbl)
-        h.addSpacing(12)
+        h.addSpacing(4)
+        h.addWidget(self._edit_num_btn)
+        h.addSpacing(8)
 
         # Status pill
         self._status_pill = QLabel("Borrador")
@@ -91,11 +105,10 @@ class ReportHeader(QWidget):
         h.addWidget(self._delete_btn)
         h.addSpacing(6)
 
-        # Duplicar (ghost, stub)
         self._dup_btn = QPushButton("Duplicar")
         self._dup_btn.setStyleSheet(S.btn_header_ghost())
         self._dup_btn.setEnabled(False)
-        self._dup_btn.setToolTip("Duplicar (Fase 3)")
+        self._dup_btn.clicked.connect(self.duplicate_requested)
         h.addWidget(self._dup_btn)
         h.addSpacing(8)
 
@@ -109,11 +122,11 @@ class ReportHeader(QWidget):
         h.addWidget(self._pdf_btn)
         h.addSpacing(6)
 
-        # Enviar (ghost, stub)
+        # Enviar
         self._send_btn = QPushButton("Enviar")
         self._send_btn.setStyleSheet(S.btn_header_ghost())
-        self._send_btn.setEnabled(False)
-        self._send_btn.setToolTip("Enviar por Gmail (Fase 8)")
+        self._send_btn.setVisible(False)
+        self._send_btn.clicked.connect(self.send_requested)
         h.addWidget(self._send_btn)
         h.addSpacing(8)
 
@@ -130,13 +143,22 @@ class ReportHeader(QWidget):
 
     def set_document_number(self, number: str) -> None:
         self._number_lbl.setText(number)
+        self._current_number = number
+
+    def set_number_editable(self, enabled: bool) -> None:
+        self._edit_num_btn.setVisible(enabled)
+
+    def set_duplicate_enabled(self, enabled: bool) -> None:
+        self._dup_btn.setEnabled(enabled)
 
     def set_status(self, status: str) -> None:
         self._status_pill.setText(status)
         self._status_pill.setStyleSheet(S.status_pill(status))
-        is_borrador = status == "Borrador"
+        is_borrador   = status == "Borrador"
+        is_finalizado = status == "Finalizado"
         self._finalize_btn.setVisible(is_borrador)
         self._delete_btn.setVisible(is_borrador)
+        self._send_btn.setVisible(is_finalizado)
 
     def set_autosave_state(self, state: str) -> None:
         """state: 'saving' | 'saved' | 'error' | 'idle'"""
@@ -148,6 +170,18 @@ class ReportHeader(QWidget):
             "idle":   "",
         }
         self._autosave_lbl.setText(labels.get(state, ""))
+
+    def _on_edit_number(self) -> None:
+        from PySide6.QtWidgets import QInputDialog
+        text, ok = QInputDialog.getText(
+            self,
+            "Editar número de informe",
+            "Número:",
+            text=self._current_number,
+        )
+        text = text.strip()
+        if ok and text and text != self._current_number:
+            self.number_change_requested.emit(text)
 
     # ── Internal ──────────────────────────────────────────────────────────────
 

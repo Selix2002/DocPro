@@ -1,10 +1,13 @@
+import logging
+import os
 import sys
+from pathlib import Path
 
-import hupper
 from PySide6.QtWidgets import QApplication, QMainWindow, QStackedWidget
 
 from docpro_backend.db.engine import get_db_path
 from docpro_frontend.dashboard_widget import DashboardWidget
+from docpro_frontend.services.gmail_service import GmailService
 from docpro_frontend.services.settings_service import SettingsService
 from docpro_frontend.services.quote_service import QuoteService
 from docpro_frontend.services.report_service import ReportService
@@ -43,8 +46,50 @@ QScrollBar::sub-page:vertical { background: none; }
 """
 
 
+def _setup_logging() -> None:
+    log_dir = Path(os.environ.get("APPDATA", Path.home())) / "DocPro"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    logging.basicConfig(
+        level=logging.WARNING,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        handlers=[logging.FileHandler(log_dir / "docpro.log", encoding="utf-8")],
+    )
+
+
+def _run_migrations() -> None:
+    """Apply pending Alembic migrations at startup — safe to call on every launch."""
+    try:
+        from alembic import command as alembic_command
+        from alembic.config import Config
+
+        if getattr(sys, "frozen", False):
+            # In the frozen bundle: alembic.ini and alembic/ land at sys._MEIPASS
+            meipass = Path(sys._MEIPASS)  # type: ignore[attr-defined]
+            ini_path = meipass / "alembic.ini"
+            script_loc = str(meipass / "alembic")
+        else:
+            # Dev layout: backend/alembic.ini, backend/alembic/
+            repo_root = Path(__file__).resolve().parents[3]
+            ini_path = repo_root / "backend" / "alembic.ini"
+            script_loc = str(ini_path.parent / "alembic")
+
+        cfg = Config(str(ini_path))
+        cfg.set_main_option("script_location", script_loc)
+        alembic_command.upgrade(cfg, "head")
+    except Exception:
+        logging.getLogger(__name__).exception("Alembic migration failed")
+
+
 def main() -> None:
-    hupper.start_reloader("docpro_frontend.main.main")
+    _setup_logging()
+
+    if not getattr(sys, "frozen", False):
+        import hupper
+        hupper.start_reloader("docpro_frontend.main.main")
+        # parent process blocks here monitoring for file changes;
+        # worker process returns immediately and falls through below
+
+    _run_migrations()
 
     DB_PATH = get_db_path()
 
@@ -69,11 +114,12 @@ def main() -> None:
     stack.setCurrentWidget(dashboard)
     window.setCentralWidget(stack)
 
+    gmail_svc    = GmailService()
     settings_svc = SettingsService(settings, DB_PATH)
     settings_svc.load_all()
 
-    quote_svc  = QuoteService(quote_wgt)
-    report_svc = ReportService(report_wgt)
+    quote_svc  = QuoteService(quote_wgt, gmail_svc)
+    report_svc = ReportService(report_wgt, gmail_svc)
 
     def go_to_settings():
         settings_svc.load_all()
@@ -85,6 +131,10 @@ def main() -> None:
 
     def open_new_quote():
         quote_svc.open_new()
+        stack.setCurrentWidget(quote_wgt)
+
+    def open_new_quote_for_client(client_id: int):
+        quote_svc.open_new_for_client(client_id)
         stack.setCurrentWidget(quote_wgt)
 
     def open_existing_quote(doc_id: int):
@@ -136,9 +186,9 @@ def main() -> None:
         else:
             open_existing_quote(doc_id)
 
-    dashboard.new_client_requested.connect(lambda: None)
     dashboard.new_quote_requested.connect(open_new_quote)
     dashboard.create_quote_requested.connect(open_new_quote)
+    dashboard.create_quote_for_client.connect(open_new_quote_for_client)
     dashboard.draft_opened.connect(open_existing_document)
     dashboard.document_opened.connect(open_existing_document)
 

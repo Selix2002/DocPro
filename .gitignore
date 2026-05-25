@@ -8,3 +8,9 @@ docpro-schema-workbench.sql
 .venv/
 backend/tmp/
 *.html
+
+# OAuth credentials & secrets — never commit
+credentials.json
+*.apps.googleusercontent.com.json
+*.enc
+secret.key

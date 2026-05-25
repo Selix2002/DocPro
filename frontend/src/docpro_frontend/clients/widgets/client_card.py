@@ -1,26 +1,36 @@
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
 from PySide6.QtCore import Signal, Qt
+from PySide6.QtWidgets import (
+    QFrame, QHBoxLayout, QLabel, QMenu, QPushButton, QVBoxLayout,
+)
 
-from docpro_frontend.clients.styles.clients_styles import CLIENT_CARD, NUEVO_DOC_BTN
+from docpro_frontend.clients.styles.clients_styles import (
+    CLIENT_CARD, CONTEXT_MENU, DELETE_BTN, NUEVO_DOC_BTN,
+)
 
 AVATAR_COLORS = ["#D97706", "#1D4ED8", "#059669", "#7C3AED"]
 
 
 class ClientCard(QFrame):
-    new_doc_clicked = Signal(int)  # client_id
+    new_doc_clicked  = Signal(int)        # client_id
+    delete_requested = Signal(int, str)   # client_id, client_name
+    edit_requested   = Signal(int, dict)  # client_id, row_data
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self._client_id = 0
+        self._row_data: dict = {}
+
         self.setObjectName("ClientCard")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setStyleSheet(CLIENT_CARD)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._show_context_menu)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(10)
 
-        # Avatar + name
+        # ── Top row: avatar + name/rut + delete btn ───────────────────────
         top_row = QHBoxLayout()
         top_row.setSpacing(12)
         top_row.setContentsMargins(0, 0, 0, 0)
@@ -45,9 +55,19 @@ class ClientCard(QFrame):
         name_col.addWidget(self._name_lbl)
         name_col.addWidget(self._rut_lbl)
         top_row.addLayout(name_col, stretch=1)
+
+        del_btn = QPushButton("✕")
+        del_btn.setStyleSheet(DELETE_BTN)
+        del_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        del_btn.setToolTip("Eliminar cliente")
+        del_btn.clicked.connect(
+            lambda: self.delete_requested.emit(self._client_id, self._row_data.get("name", ""))
+        )
+        top_row.addWidget(del_btn, alignment=Qt.AlignmentFlag.AlignTop)
+
         layout.addLayout(top_row)
 
-        # Contact
+        # ── Contact ───────────────────────────────────────────────────────
         self._email_lbl = QLabel()
         self._email_lbl.setStyleSheet(
             "font-size: 15px; color: #6B7280; background: transparent;"
@@ -59,7 +79,7 @@ class ClientCard(QFrame):
         layout.addWidget(self._email_lbl)
         layout.addWidget(self._phone_lbl)
 
-        # Doc count + date
+        # ── Doc count + date ──────────────────────────────────────────────
         meta_row = QHBoxLayout()
         meta_row.setContentsMargins(0, 0, 0, 0)
         meta_row.setSpacing(8)
@@ -76,7 +96,7 @@ class ClientCard(QFrame):
         meta_row.addWidget(self._date_lbl)
         layout.addLayout(meta_row)
 
-        # Action
+        # ── Action ────────────────────────────────────────────────────────
         nuevo_btn = QPushButton("Nueva cotización")
         nuevo_btn.setStyleSheet(NUEVO_DOC_BTN)
         nuevo_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -85,6 +105,7 @@ class ClientCard(QFrame):
 
     def set_data(self, row: dict) -> None:
         self._client_id = row["client_id"]
+        self._row_data  = row
         color = AVATAR_COLORS[self._client_id % 4]
         self._avatar.setStyleSheet(
             f"background: {color}; border-radius: 22px; "
@@ -100,6 +121,13 @@ class ClientCard(QFrame):
             f"{doc_count} doc" if doc_count == 1 else f"{doc_count} docs"
         )
         self._date_lbl.setText(row.get("created_at_label", ""))
+
+    def _show_context_menu(self, pos) -> None:
+        menu = QMenu(self)
+        menu.setStyleSheet(CONTEXT_MENU)
+        edit_action = menu.addAction("✏   Editar cliente")
+        if menu.exec(self.mapToGlobal(pos)) is edit_action:
+            self.edit_requested.emit(self._client_id, dict(self._row_data))
 
 
 def _initials(name: str) -> str:

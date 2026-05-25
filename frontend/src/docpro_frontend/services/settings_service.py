@@ -1,16 +1,19 @@
 from datetime import datetime
 from pathlib import Path
 
+from PySide6.QtCore import QThreadPool
+
 from docpro_backend.db.engine import engine
 from docpro_backend.db.session import SessionLocal
 from docpro_backend.repositories.config.company_profile import CompanyProfileRepository
 from docpro_backend.repositories.config.settings import SettingRepository
-from docpro_backend.repositories.documents.section_templates import SectionTemplateRepository
 
 import docpro_frontend.theme as theme
 from docpro_frontend.services.backup_service import BackupService
 from docpro_frontend.services.encryption_service import EncryptionService
+from docpro_frontend.services.gmail_service import run_oauth_flow
 from docpro_frontend.services.groq_service import GroqService
+from docpro_frontend.services.worker import Worker
 from docpro_frontend.settings.views.settings_widget import SettingsWidget
 
 
@@ -34,7 +37,6 @@ class SettingsService:
             self._load_numeracion(session)
             self._load_apariencia(session)
             self._load_groq(session)
-            self._load_plantillas(session)
             self._load_backup(session)
         finally:
             session.close()
@@ -68,6 +70,7 @@ class SettingsService:
             email=profile.email or "" if profile else "",
             firma_nombre=repo.get_or_none("firma.nombre") or "",
             firma_cargo=repo.get_or_none("firma.cargo") or "",
+            firma_imagen=repo.get_or_none("firma.imagen") or "",
         )
 
     def _load_numeracion(self, session) -> None:
@@ -108,15 +111,6 @@ class SettingsService:
             self._widget.content.update_card_status("groq", "Sin configurar", "off")
             self._widget.sidebar.update_tile_status("groq", "Sin key", "off")
 
-    def _load_plantillas(self, session) -> None:
-        templates = SectionTemplateRepository(session).list_all()
-        self._forms.templates_form.set_templates([
-            {"id": t.id, "name": t.name, "usage_count": t.usage_count}
-            for t in templates
-        ])
-        count = len(templates)
-        self._widget.sidebar.update_tile_status("plantillas", str(count), "off")
-
     def _load_backup(self, session) -> None:
         last = SettingRepository(session).get_or_none("last_backup")
         if last:
@@ -148,8 +142,9 @@ class SettingsService:
             email=data["email"],
         )
         repo = SettingRepository(session)
-        repo.set("firma.nombre", data.get("firma_nombre") or "")
-        repo.set("firma.cargo",  data.get("firma_cargo")  or "")
+        repo.set("firma.nombre",  data.get("firma_nombre")  or "")
+        repo.set("firma.cargo",   data.get("firma_cargo")   or "")
+        repo.set("firma.imagen",  data.get("firma_imagen")  or "")
 
     def _save_numeracion(self, session) -> None:
         data = self._forms.numbering_form.get_data()
@@ -182,10 +177,6 @@ class SettingsService:
         self._forms.gmail_form.connect_requested.connect(self._on_gmail_connect)
         self._forms.gmail_form.disconnect_requested.connect(self._on_gmail_disconnect)
 
-        # Plantillas: immediate CRUD
-        self._forms.templates_form.add_template_requested.connect(self._on_template_add)
-        self._forms.templates_form.delete_template_requested.connect(self._on_template_delete)
-
         # Backup: immediate actions
         self._forms.backup_form.export_requested.connect(self._on_backup_export)
         self._forms.backup_form.restore_requested.connect(self._on_backup_restore)
@@ -205,7 +196,26 @@ class SettingsService:
             self._widget.sidebar.update_tile_status("groq", "Error", "warn")
 
     def _on_gmail_connect(self) -> None:
-        pass  # OAuth flow — phase 8
+        self._forms.gmail_form.set_loading(True)
+        self._widget.sidebar.update_tile_status("gmail", "Conectando…", "warn")
+        worker = Worker(run_oauth_flow)
+        worker.signals.result.connect(self._on_gmail_auth_success)
+        worker.signals.error.connect(self._on_gmail_auth_error)
+        QThreadPool.globalInstance().start(worker)
+
+    def _on_gmail_auth_success(self, token_dict: dict) -> None:
+        self._enc.save_gmail_token(token_dict)
+        session = SessionLocal()
+        try:
+            SettingRepository(session).set("gmail_email", token_dict.get("email", ""))
+            session.commit()
+        finally:
+            session.close()
+        self._load_gmail()
+
+    def _on_gmail_auth_error(self, message: str) -> None:
+        self._forms.gmail_form.set_error(message[:80])
+        self._widget.sidebar.update_tile_status("gmail", "Error", "warn")
 
     def _on_gmail_disconnect(self) -> None:
         self._enc.clear_gmail_token()
@@ -216,18 +226,6 @@ class SettingsService:
         finally:
             session.close()
         self._load_gmail()
-
-    def _on_template_add(self) -> None:
-        pass  # CreateTemplateDialog — phase 5
-
-    def _on_template_delete(self, template_id: int) -> None:
-        session = SessionLocal()
-        try:
-            SectionTemplateRepository(session).delete(template_id)
-            session.commit()
-            self._load_plantillas(session)
-        finally:
-            session.close()
 
     def _on_backup_export(self) -> None:
         timestamp = self._backup_svc.export(self._db_path, parent=self._widget)

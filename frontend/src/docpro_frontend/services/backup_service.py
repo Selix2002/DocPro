@@ -4,6 +4,16 @@ from pathlib import Path
 
 from PySide6.QtWidgets import QFileDialog, QMessageBox, QWidget
 
+_SQLITE_MAGIC = b"SQLite format 3\x00"
+
+
+def _is_valid_sqlite(path: str) -> bool:
+    try:
+        with open(path, "rb") as f:
+            return f.read(16) == _SQLITE_MAGIC
+    except OSError:
+        return False
+
 
 class BackupService:
     def export(self, db_path: Path, parent: QWidget | None = None) -> str | None:
@@ -35,6 +45,14 @@ class BackupService:
             "Base de datos SQLite (*.db)",
         )
         if not src:
+            return False
+
+        if not _is_valid_sqlite(src):
+            QMessageBox.critical(
+                parent,
+                "Archivo inválido",
+                "El archivo seleccionado no es una base de datos SQLite válida.",
+            )
             return False
 
         reply = QMessageBox.warning(

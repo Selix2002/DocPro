@@ -1,13 +1,13 @@
-from PySide6.QtWidgets import (
-    QWidget, QScrollArea, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QStackedWidget,
-)
 from PySide6.QtCore import Signal, Qt
+from PySide6.QtWidgets import (
+    QHBoxLayout, QLabel, QPushButton, QScrollArea,
+    QStackedWidget, QVBoxLayout, QWidget,
+)
 
 from docpro_frontend.clients.styles.clients_styles import NEW_CLIENT_BTN
-from docpro_frontend.clients.widgets.filter_bar import ClientsFilterBar
 from docpro_frontend.clients.widgets.clients_grid import ClientsGrid
 from docpro_frontend.clients.widgets.clients_table import ClientsTable
+from docpro_frontend.clients.widgets.filter_bar import ClientsFilterBar
 from docpro_frontend.clients.widgets.pagination_bar import ClientsPaginationBar
 from docpro_frontend.clients.widgets.stats_bar import ClientsStatsBar
 
@@ -16,9 +16,11 @@ _IDX_TABLE = 1
 
 
 class ClientsWidget(QWidget):
-    new_document_requested = Signal(int)   # client_id — stub for Phase 6
-    new_client_requested   = Signal()      # stub for Phase 6
-    filter_changed         = Signal(dict)  # keys: search, sort, page_size
+    new_document_requested = Signal(int)        # client_id
+    new_client_requested   = Signal()
+    delete_requested       = Signal(int, str)   # client_id, client_name
+    edit_requested         = Signal(int, dict)  # client_id, row_data
+    filter_changed         = Signal(dict)
     page_changed           = Signal(int)
 
     def __init__(self, parent=None):
@@ -92,10 +94,17 @@ class ClientsWidget(QWidget):
         self._stack = QStackedWidget()
         self._grid  = ClientsGrid()
         self._table = ClientsTable()
-        self._stack.addWidget(self._grid)   # _IDX_GRID
-        self._stack.addWidget(self._table)  # _IDX_TABLE
+        self._stack.addWidget(self._grid)
+        self._stack.addWidget(self._table)
+
         self._grid.new_document_requested.connect(self.new_document_requested)
+        self._grid.delete_requested.connect(self.delete_requested)
+        self._grid.edit_requested.connect(self.edit_requested)
+
         self._table.new_document_requested.connect(self.new_document_requested)
+        self._table.delete_requested.connect(self.delete_requested)
+        self._table.edit_requested.connect(self.edit_requested)
+
         inner.addWidget(self._stack)
         inner.addSpacing(18)
 
@@ -105,7 +114,7 @@ class ClientsWidget(QWidget):
         inner.addWidget(self._pagination)
         inner.addStretch()
 
-    # ── public ────────────────────────────────────────────────────────────
+    # ── Public ────────────────────────────────────────────────────────────
 
     def set_loading(self, loading: bool) -> None:
         self._grid.set_loading(loading)
@@ -123,7 +132,7 @@ class ClientsWidget(QWidget):
         self._pagination.set_state(data["current_page"], data["total_pages"])
         self.set_loading(False)
 
-    # ── private ───────────────────────────────────────────────────────────
+    # ── Private ───────────────────────────────────────────────────────────
 
     def _on_filter_changed(self, params: dict) -> None:
         params["page_size"] = self._page_size

@@ -1,7 +1,7 @@
-import socket
-
 from groq import Groq
 from groq import AuthenticationError, APIConnectionError, APIStatusError
+
+from docpro_frontend.services.network import is_online
 
 _SYSTEM_PROMPT = (
     "Eres un asistente de redacción técnica en español. "
@@ -12,14 +12,6 @@ _SYSTEM_PROMPT = (
 _FALLBACK_CHAIN = ["llama-3.3-70b-versatile", "groq/compound-mini"]
 _ABORT = object()
 _RETRY = object()
-
-
-def _is_online() -> bool:
-    try:
-        socket.create_connection(("api.groq.com", 443), timeout=2)
-        return True
-    except OSError:
-        return False
 
 
 def _call_once(text: str, api_key: str, model: str) -> object:
@@ -68,7 +60,7 @@ class GroqService:
         """Returns (improved_text, actual_model_used). Both None on any failure."""
         if not api_key or not text.strip():
             return None, None
-        if not _is_online():
+        if not is_online("api.groq.com"):
             return None, None
         chain = [model] + [m for m in _FALLBACK_CHAIN if m != model]
         for candidate in chain:

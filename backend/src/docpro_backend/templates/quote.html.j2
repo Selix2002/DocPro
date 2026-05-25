@@ -12,11 +12,7 @@
     color: #1a1a1a;
   }
 
-  .page {
-    width: 210mm;
-    min-height: 297mm;
-    padding: 20mm 18mm 20mm 18mm;
-  }
+  .page { /* dimensiones y márgenes gestionados por @page */ }
 
   /* ── Título ── */
   .doc-title {
@@ -182,7 +178,7 @@
     white-space: pre-wrap;
   }
 
-  @page { size: A4; margin: 0; }
+  @page { size: A4; margin: 20mm 18mm 25mm 18mm; }
 </style>
 </head>
 <body>
@@ -314,6 +310,7 @@
     <div class="obs-text">{{ quote.observations }}</div>
   </div>
   {% endif %}
+
 
 </div>
 </body>

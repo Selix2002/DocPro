@@ -12,11 +12,7 @@
     color: #1a1a1a;
   }
 
-  .page {
-    width: 210mm;
-    min-height: 297mm;
-    padding: 20mm 18mm 20mm 18mm;
-  }
+  .page { /* dimensiones y márgenes gestionados por @page */ }
 
   /* ── Título ── */
   .doc-type {
@@ -233,7 +229,7 @@
     margin-top: 2px;
   }
 
-  @page { size: A4; margin: 0; }
+  @page { size: A4; margin: 20mm 18mm 25mm 18mm; }
 </style>
 </head>
 <body>
@@ -374,13 +370,20 @@
   {% endfor %}
 
   <!-- FIRMA -->
-  {% if firma_nombre %}
+  {% if firma_nombre or firma_imagen %}
   <div class="firma-wrap">
     <div class="firma-box">
+      {% if firma_imagen %}
+      <img src="{{ firma_imagen }}"
+           style="width:3cm;height:1.5cm;object-fit:contain;display:block;margin:0 auto 6px;"
+           alt="">
+      {% endif %}
       <div class="firma-line"></div>
+      {% if firma_nombre %}
       <p class="firma-name">{{ firma_nombre }}</p>
       {% if firma_cargo %}
       <p class="firma-cargo">{{ firma_cargo }}</p>
+      {% endif %}
       {% endif %}
     </div>
   </div>

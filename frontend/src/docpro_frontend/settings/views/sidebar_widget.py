@@ -24,13 +24,6 @@ _SECTIONS: list[dict] = [
         ],
     },
     {
-        "label": "Documentos",
-        "items": [
-            {"key": "plantillas", "icon": "☰", "text": "Plantillas",
-             "badge_text": "0", "badge_state": "off"},
-        ],
-    },
-    {
         "label": "Datos",
         "items": [
             {"key": "backup", "icon": "💾", "text": "Backup"},

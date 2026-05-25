@@ -5,7 +5,8 @@ from docpro_frontend.header.styles.header_styles import TOOLBAR, TOOLBAR_BTN, TO
 
 
 class Toolbar(QWidget):
-    search_changed = Signal(str)
+    search_changed  = Signal(str)
+    filter_toggled  = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -25,14 +26,15 @@ class Toolbar(QWidget):
         self._search.textChanged.connect(self.search_changed)
         layout.addWidget(self._search)
 
-        btn_filter = QPushButton("≡  Filtros")
-        btn_filter.setStyleSheet(TOOLBAR_BTN)
-        btn_filter.setCursor(Qt.CursorShape.PointingHandCursor)
-        layout.addWidget(btn_filter)
+        self._btn_filter = QPushButton("≡  Filtros")
+        self._btn_filter.setStyleSheet(TOOLBAR_BTN)
+        self._btn_filter.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._btn_filter.setCheckable(True)
+        self._btn_filter.clicked.connect(self.filter_toggled)
+        layout.addWidget(self._btn_filter)
 
         layout.addStretch()
 
-        btn_export = QPushButton("↓  Exportar")
-        btn_export.setStyleSheet(TOOLBAR_BTN)
-        btn_export.setCursor(Qt.CursorShape.PointingHandCursor)
-        layout.addWidget(btn_export)
+    @property
+    def search_field(self):
+        return self._search

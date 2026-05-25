@@ -49,6 +49,7 @@ def render_report_pdf(
     company: CompanyProfileReadModel | None,
     firma_nombre: str | None,
     firma_cargo: str | None,
+    firma_imagen: str | None,
     output_path: Path,
 ) -> Path:
     env = _build_env()
@@ -60,6 +61,7 @@ def render_report_pdf(
         sections_tree=sections_tree,
         firma_nombre=firma_nombre,
         firma_cargo=firma_cargo,
+        firma_imagen=firma_imagen,
     )
     HTML(string=html_str).write_pdf(str(output_path))
     return output_path

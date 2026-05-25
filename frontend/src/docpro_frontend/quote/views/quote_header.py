@@ -20,8 +20,11 @@ class QuoteHeader(QWidget):
     finalize_requested     = Signal()
     delete_requested       = Signal()
     generate_pdf_requested = Signal()
+    send_requested         = Signal()
     approve_requested      = Signal()
     reject_requested       = Signal()
+    number_change_requested = Signal(str)
+    duplicate_requested     = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -47,6 +50,15 @@ class QuoteHeader(QWidget):
 
         self._number_lbl = QLabel("—")
         self._number_lbl.setStyleSheet(S.doc_number_label())
+        self._current_number = "—"
+
+        self._edit_num_btn = QPushButton("✎")
+        self._edit_num_btn.setStyleSheet(S.doc_number_edit_btn())
+        self._edit_num_btn.setFixedSize(22, 22)
+        self._edit_num_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._edit_num_btn.setToolTip("Editar número")
+        self._edit_num_btn.setVisible(False)
+        self._edit_num_btn.clicked.connect(self._on_edit_number)
 
         self._status_pill = QLabel("Borrador")
         self._status_pill.setStyleSheet(S.status_pill("Borrador"))
@@ -54,7 +66,9 @@ class QuoteHeader(QWidget):
         h.addWidget(type_pill)
         h.addSpacing(10)
         h.addWidget(self._number_lbl)
-        h.addSpacing(10)
+        h.addSpacing(4)
+        h.addWidget(self._edit_num_btn)
+        h.addSpacing(6)
         h.addWidget(self._status_pill)
         h.addSpacing(20)
 
@@ -84,6 +98,13 @@ class QuoteHeader(QWidget):
         self._delete_btn.setStyleSheet(S.btn_header_danger())
         self._delete_btn.clicked.connect(self.delete_requested)
         h.addWidget(self._delete_btn)
+        h.addSpacing(6)
+
+        self._dup_btn = QPushButton("Duplicar")
+        self._dup_btn.setStyleSheet(S.btn_header_ghost())
+        self._dup_btn.setEnabled(False)
+        self._dup_btn.clicked.connect(self.duplicate_requested)
+        h.addWidget(self._dup_btn)
         h.addSpacing(8)
 
         self._sep1 = self._make_sep()
@@ -104,6 +125,18 @@ class QuoteHeader(QWidget):
         self._finalize_btn.setStyleSheet(S.btn_header_primary())
         self._finalize_btn.clicked.connect(self.finalize_requested)
         h.addWidget(self._finalize_btn)
+
+        self._sep_send = self._make_sep()
+        self._sep_send.setVisible(False)
+        h.addSpacing(8)
+        h.addWidget(self._sep_send)
+        h.addSpacing(8)
+
+        self._send_btn = QPushButton("Enviar")
+        self._send_btn.setStyleSheet(S.btn_header_ghost())
+        self._send_btn.clicked.connect(self.send_requested)
+        self._send_btn.setVisible(False)
+        h.addWidget(self._send_btn)
 
         self._sep3 = self._make_sep()
         self._sep3.setVisible(False)
@@ -128,14 +161,24 @@ class QuoteHeader(QWidget):
 
     def set_document_number(self, number: str) -> None:
         self._number_lbl.setText(number)
+        self._current_number = number
+
+    def set_number_editable(self, enabled: bool) -> None:
+        self._edit_num_btn.setVisible(enabled)
+
+    def set_duplicate_enabled(self, enabled: bool) -> None:
+        self._dup_btn.setEnabled(enabled)
 
     def set_status(self, status: str) -> None:
         self._status_pill.setText(status)
         self._status_pill.setStyleSheet(S.status_pill(status))
-        is_borrador = status == "Borrador"
-        is_enviado  = status == "Enviado"
+        is_borrador   = status == "Borrador"
+        is_finalizado = status == "Finalizado"
+        is_enviado    = status == "Enviado"
         self._finalize_btn.setVisible(is_borrador)
         self._delete_btn.setVisible(is_borrador)
+        self._sep_send.setVisible(is_finalizado)
+        self._send_btn.setVisible(is_finalizado)
         self._sep3.setVisible(is_enviado)
         self._approve_btn.setVisible(is_enviado)
         self._reject_btn.setVisible(is_enviado)
@@ -150,6 +193,18 @@ class QuoteHeader(QWidget):
             "idle":   "",
         }
         self._autosave_lbl.setText(labels.get(state, ""))
+
+    def _on_edit_number(self) -> None:
+        from PySide6.QtWidgets import QInputDialog
+        text, ok = QInputDialog.getText(
+            self,
+            "Editar número de cotización",
+            "Número:",
+            text=self._current_number,
+        )
+        text = text.strip()
+        if ok and text and text != self._current_number:
+            self.number_change_requested.emit(text)
 
     # ── Internal ──────────────────────────────────────────────────────────────
 

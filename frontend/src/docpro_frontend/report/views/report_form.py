@@ -9,6 +9,7 @@ from docpro_frontend.report.views.meta_row import MetaRow
 from docpro_frontend.report.views.trabajo_section import TrabajoSection
 from docpro_frontend.report.views.sections_list import SectionsList
 from docpro_frontend.quote.views.client_section import ClientSection
+from docpro_frontend.widgets.ai_improve_button import AiImproveButton
 
 
 class ReportForm(QWidget):
@@ -195,25 +196,7 @@ class ReportForm(QWidget):
         h = QHBoxLayout(head)
         h.setContentsMargins(20, 0, 20, 0)
 
-        icon = QLabel("📝")
-        icon.setStyleSheet(S.section_head_icon())
-
-        sec_label = QLabel("Observaciones")
-        sec_label.setStyleSheet(S.section_head_label())
-
-        self._obs_ai_btn = QPushButton("✦  Mejorar redacción")
-        self._obs_ai_btn.setStyleSheet(S.ai_btn_stub())
-        self._obs_ai_btn.setEnabled(False)
-        self._obs_ai_btn.setToolTip("Disponible en Fase 9")
-
-        h.addWidget(icon)
-        h.addSpacing(8)
-        h.addWidget(sec_label)
-        h.addStretch()
-        h.addWidget(self._obs_ai_btn)
-        layout.addWidget(head)
-
-        # Body
+        # Body textarea created first so AiImproveButton can reference it
         body = QWidget()
         body_layout = QVBoxLayout(body)
         body_layout.setContentsMargins(20, 16, 20, 20)
@@ -226,6 +209,21 @@ class ReportForm(QWidget):
         self._obs.setMinimumHeight(100)
         self._obs.textChanged.connect(self.field_changed)
         body_layout.addWidget(self._obs)
+
+        icon = QLabel("📝")
+        icon.setStyleSheet(S.section_head_icon())
+
+        sec_label = QLabel("Observaciones")
+        sec_label.setStyleSheet(S.section_head_label())
+
+        self._obs_ai_btn = AiImproveButton(self._obs)
+
+        h.addWidget(icon)
+        h.addSpacing(8)
+        h.addWidget(sec_label)
+        h.addStretch()
+        h.addWidget(self._obs_ai_btn)
+        layout.addWidget(head)
         layout.addWidget(body)
 
         return block

@@ -2,7 +2,7 @@ import json
 
 from sqlalchemy.orm import Session
 
-from docpro_backend.dtos import QuoteInput, QuoteReadModel
+from docpro_backend.dtos import QuoteInput, QuoteItemInput, QuoteReadModel
 from docpro_backend.repositories.config.company_profile import CompanyProfileRepository
 from docpro_backend.repositories.documents.document_versions import DocumentVersionRepository
 from docpro_backend.repositories.quotes.quotes import QuoteRepository
@@ -81,6 +81,27 @@ def reject_quote(session: Session, document_id: int) -> QuoteReadModel:
     repo = QuoteRepository(session)
     doc, quote, items, client = repo.get_full(document_id)
     return QuoteReadModel.from_query(doc, quote, items, client)
+
+
+def duplicate_quote(session: Session, source_doc_id: int) -> QuoteReadModel:
+    from datetime import date
+    source = get_quote(session, source_doc_id)
+    data = QuoteInput(
+        client_id=source.client_id,
+        number="",
+        issue_date=date.today().strftime("%Y-%m-%d"),
+        observations=source.observations,
+        items=[
+            QuoteItemInput(
+                quantity=i.quantity,
+                description=i.description,
+                unit_price=i.unit_price,
+                position=i.position,
+            )
+            for i in source.items
+        ],
+    )
+    return create_quote(session, data)
 
 
 def get_quote(session: Session, document_id: int) -> QuoteReadModel:

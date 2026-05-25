@@ -58,6 +58,17 @@ def doc_number_label() -> str:
     return f"font-size: 17px; font-weight: 600; color: {t['text']}; background: transparent;"
 
 
+def doc_number_edit_btn() -> str:
+    return (
+        "QPushButton {"
+        "  background: transparent; border: none; border-radius: 4px;"
+        "  font-size: 13px; color: #9CA3AF; padding: 1px 3px;"
+        "  min-width: 20px; max-width: 20px; min-height: 20px; max-height: 20px;"
+        "}"
+        "QPushButton:hover { background: #F3F4F6; color: #6B7280; }"
+    )
+
+
 def title_input() -> str:
     t = _t()
     return f"""

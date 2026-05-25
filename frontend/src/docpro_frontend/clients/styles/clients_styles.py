@@ -154,3 +154,37 @@ QPushButton {
 }
 QPushButton:hover { background: #FEF3C7; color: #B45309; }
 """
+
+DELETE_BTN = """
+QPushButton {
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #D1D5DB;
+    padding: 0px;
+    min-width: 28px;
+    max-width: 28px;
+    min-height: 28px;
+    max-height: 28px;
+}
+QPushButton:hover { background: #FEE2E2; color: #DC2626; }
+"""
+
+CONTEXT_MENU = """
+QMenu {
+    background: white;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    padding: 4px;
+    font-size: 16px;
+}
+QMenu::item {
+    padding: 9px 20px;
+    color: #111827;
+    border-radius: 6px;
+    font-size: 16px;
+}
+QMenu::item:selected { background: #F3F4F6; color: #111827; }
+"""

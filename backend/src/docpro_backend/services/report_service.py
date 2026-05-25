@@ -1,4 +1,6 @@
+import base64
 import json
+from pathlib import Path
 
 from sqlalchemy.orm import Session
 
@@ -52,6 +54,24 @@ def finalize_report(session: Session, document_id: int) -> ReportReadModel:
     return result
 
 
+def duplicate_report(session: Session, source_doc_id: int) -> ReportReadModel:
+    source = get_report(session, source_doc_id)
+    new_inp = ReportInput(client_id=source.client_id, number="")
+    new_doc = create_report(session, new_inp)
+    section_inputs = [
+        SectionInput(
+            temp_id=f"s{s.id}",
+            parent_temp_id=f"s{s.parent_id}" if s.parent_id is not None else None,
+            title=s.title,
+            content=s.content,
+            content_json=s.content_json,
+            position=s.position,
+        )
+        for s in source.sections
+    ]
+    return update_sections(session, new_doc.document_id, section_inputs)
+
+
 def get_report(session: Session, document_id: int) -> ReportReadModel:
     repo = ReportRepository(session)
     doc, report, sections, client = repo.get_full(document_id)
@@ -64,7 +84,7 @@ def get_company(session: Session):
     return CompanyProfileReadModel.from_orm(profile) if profile else None
 
 
-def get_firma(session: Session) -> tuple[str | None, str | None]:
+def get_firma(session: Session) -> tuple[str | None, str | None, str | None]:
     from docpro_backend.repositories.config.company_profile import CompanyProfileRepository
     repo = SettingRepository(session)
     nombre = repo.get_or_none("firma.nombre") or None
@@ -73,7 +93,16 @@ def get_firma(session: Session) -> tuple[str | None, str | None]:
         profile = CompanyProfileRepository(session).get()
         if profile and profile.name:
             nombre = profile.name
-    return nombre, cargo
+    imagen_b64: str | None = None
+    imagen_path_str = repo.get_or_none("firma.imagen") or ""
+    if imagen_path_str:
+        img_path = Path(imagen_path_str)
+        if img_path.exists():
+            data = img_path.read_bytes()
+            suffix = img_path.suffix.lower().lstrip(".")
+            mime = "jpeg" if suffix in ("jpg", "jpeg") else suffix or "png"
+            imagen_b64 = f"data:image/{mime};base64,{base64.b64encode(data).decode()}"
+    return nombre, cargo, imagen_b64
 
 
 def _save_snapshot(session: Session, report: ReportReadModel) -> None:
