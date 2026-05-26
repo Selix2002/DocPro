@@ -266,7 +266,7 @@ a = Analysis(
     runtime_hooks=[],
     excludes=excludes,
     noarchive=False,
-    optimize=0,
+    optimize=2,
 )
 
 pyz = PYZ(a.pure)
@@ -283,11 +283,11 @@ exe = EXE(
     [],
     exclude_binaries=True,
     name="DocPro",
-    debug=True,
+    debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=True,           # DEBUG: temporarily enabled to see startup errors
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,

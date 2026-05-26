@@ -190,6 +190,8 @@ class QuoteService(QObject):
         elif self._pending_finalize:
             self._pending_finalize = False
             self._execute_finalize()
+        elif not self._preview_locked:
+            self._trigger_preview_render(self._doc_id)
 
     def _on_client_and_quote_created(self, result: dict) -> None:
         self._current_client_id = result["client_id"]
@@ -206,11 +208,16 @@ class QuoteService(QObject):
         elif self._pending_finalize:
             self._pending_finalize = False
             self._execute_finalize()
+        elif not self._preview_locked:
+            self._trigger_preview_render(self._doc_id)
 
     def _on_autosaved(self, _) -> None:
         self._header.set_autosave_state("saved")
         if self._pending_back:
             self._do_navigate_back()
+            return
+        if not self._preview_locked:
+            self._trigger_preview_render(self._doc_id)
 
     def _on_autosave_error(self, msg: str) -> None:
         self._header.set_autosave_state("error")
@@ -229,8 +236,7 @@ class QuoteService(QObject):
         self._header.set_autosave_state("saved")
         self._header.set_number_editable(rm.status == "Borrador")
         self._header.set_duplicate_enabled(True)
-        if rm.status != "Borrador":
-            self._form.set_readonly(True)
+        self._form.set_readonly(rm.status != "Borrador")
         self._loading = False
         self._trigger_preview_render(self._doc_id)
 

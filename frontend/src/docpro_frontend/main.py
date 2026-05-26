@@ -180,9 +180,6 @@ def main() -> None:
                 return
         go_to_dashboard()
 
-    dashboard.tab_changed.connect(lambda name: print(f"[nav] tab → {name}"))
-    dashboard.import_pdf_requested.connect(lambda: print("[nav] importar PDF"))
-
     def open_existing_document(doc_id: int, doc_type: str):
         if doc_type == "inf":
             open_existing_report(doc_id)
