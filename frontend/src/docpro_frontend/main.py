@@ -46,14 +46,31 @@ QScrollBar::sub-page:vertical { background: none; }
 """
 
 
+def _is_debug_mode() -> bool:
+    if "--debug" in sys.argv:
+        return True
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).stem.lower().endswith("-debug")
+    return False
+
+
 def _setup_logging() -> None:
     log_dir = Path(os.environ.get("APPDATA", Path.home())) / "DocPro"
     log_dir.mkdir(parents=True, exist_ok=True)
-    logging.basicConfig(
-        level=logging.WARNING,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-        handlers=[logging.FileHandler(log_dir / "docpro.log", encoding="utf-8")],
-    )
+
+    debug = _is_debug_mode()
+    level = logging.DEBUG if debug else logging.WARNING
+    fmt = "%(asctime)s %(levelname)s %(name)s: %(message)s"
+
+    handlers: list[logging.Handler] = [
+        logging.FileHandler(log_dir / "docpro.log", encoding="utf-8"),
+    ]
+    if debug:
+        handlers.append(logging.StreamHandler(sys.stdout))
+
+    logging.basicConfig(level=level, format=fmt, handlers=handlers)
+    if debug:
+        logging.getLogger(__name__).info("Debug mode activo — logs visibles en consola")
 
 
 def _run_migrations() -> None:

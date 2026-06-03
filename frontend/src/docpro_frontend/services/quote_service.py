@@ -157,12 +157,16 @@ class QuoteService(QObject):
         doc_id      = self._doc_id
         client_id   = self._current_client_id
 
-        if client_id is None:
-            # New client: create client + quote atomically
+        if client_id is None and doc_id is None:
+            # Nuevo cliente, nueva cotización: crear ambos
             worker = Worker(lambda: _create_client_and_quote(client_data, data))
             worker.signals.result.connect(self._on_client_and_quote_created)
+        elif client_id is None and doc_id is not None:
+            # Cliente cambiado en cotización existente: crear/encontrar cliente y actualizar doc
+            worker = Worker(lambda: _reassign_client_and_update_quote(client_data, data, doc_id))
+            worker.signals.result.connect(self._on_client_and_quote_created)
         else:
-            # Existing client: update client fields + create or update quote
+            # Cliente conocido: actualizar datos de cliente y crear/actualizar cotización
             worker = Worker(lambda: _save_with_client(client_id, client_data, data, doc_id))
             worker.signals.result.connect(
                 self._on_created if doc_id is None else self._on_autosaved
@@ -270,7 +274,6 @@ class QuoteService(QObject):
     def _on_client_not_found(self) -> None:
         self._current_client_id = None
         self._form.client_section.show_not_found()
-        self._form.client_section.clear_client_fields()
 
     # ── Number editing ────────────────────────────────────────────────────────
 
@@ -813,6 +816,7 @@ def _save_with_client(client_id: int, client_data: dict, form_data: dict, doc_id
             number=form_data.get("number", ""),
             issue_date=form_data["issue_date"],
             observations=form_data.get("observations"),
+            show_iva=form_data.get("show_iva", True),
             items=[
                 QuoteItemInput(
                     quantity=i["quantity"],
@@ -826,6 +830,62 @@ def _save_with_client(client_id: int, client_data: dict, form_data: dict, doc_id
         result = create_quote(session, inp) if doc_id is None else update_quote(session, doc_id, inp)
         session.commit()
         return result
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+def _reassign_client_and_update_quote(client_data: dict, form_data: dict, doc_id: int) -> dict:
+    """Encuentra o crea el cliente con el nuevo RUT, reasigna el documento y actualiza la cotización."""
+    from docpro_backend.db.session import SessionLocal
+    from docpro_backend.repositories.config.clients import ClientRepository
+    from docpro_backend.dtos.quotes import QuoteInput, QuoteItemInput
+    from docpro_backend.services.quote_service import update_quote
+    from docpro_backend.schema.documents.documents import Document
+    from sqlalchemy.exc import NoResultFound
+    session = SessionLocal()
+    try:
+        try:
+            client = ClientRepository(session).get_by_rut(client_data["rut"])
+            ClientRepository(session).update(
+                client.id,
+                name=client_data.get("name") or "",
+                address=client_data.get("address"),
+                email=client_data.get("email"),
+                phone=client_data.get("phone"),
+            )
+        except NoResultFound:
+            client = ClientRepository(session).create(
+                rut=client_data["rut"],
+                name=client_data["name"],
+                address=client_data.get("address"),
+                email=client_data.get("email"),
+                phone=client_data.get("phone"),
+            )
+        doc = session.get(Document, doc_id)
+        doc.client_id = client.id
+        session.flush()
+        inp = QuoteInput(
+            client_id=client.id,
+            number=form_data.get("number", ""),
+            issue_date=form_data["issue_date"],
+            observations=form_data.get("observations"),
+            show_iva=form_data.get("show_iva", True),
+            items=[
+                QuoteItemInput(
+                    quantity=i["quantity"],
+                    description=i["description"],
+                    unit_price=i["unit_price"],
+                    position=i["position"],
+                )
+                for i in form_data.get("items", [])
+            ],
+        )
+        result = update_quote(session, doc_id, inp)
+        session.commit()
+        return {"client_id": client.id, "doc_id": doc_id, "number": result.number}
     except Exception:
         session.rollback()
         raise
@@ -856,6 +916,7 @@ def _create_client_and_quote(client_data: dict, form_data: dict) -> dict:
             number=form_data.get("number", ""),
             issue_date=form_data["issue_date"],
             observations=form_data.get("observations"),
+            show_iva=form_data.get("show_iva", True),
             items=[
                 QuoteItemInput(
                     quantity=i["quantity"],

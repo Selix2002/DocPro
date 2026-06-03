@@ -21,6 +21,7 @@ def create_quote(session: Session, data: QuoteInput) -> QuoteReadModel:
         number=number,
         issue_date=data.issue_date,
         observations=data.observations,
+        show_iva=data.show_iva,
         items=[
             {
                 "quantity": i.quantity,
@@ -43,6 +44,7 @@ def update_quote(session: Session, document_id: int, data: QuoteInput) -> QuoteR
         document_id=document_id,
         issue_date=data.issue_date,
         observations=data.observations,
+        show_iva=data.show_iva,
         items=[
             {
                 "quantity": i.quantity,
@@ -91,6 +93,7 @@ def duplicate_quote(session: Session, source_doc_id: int) -> QuoteReadModel:
         number="",
         issue_date=date.today().strftime("%Y-%m-%d"),
         observations=source.observations,
+        show_iva=source.show_iva,
         items=[
             QuoteItemInput(
                 quantity=i.quantity,

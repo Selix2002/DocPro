@@ -293,12 +293,12 @@
         <span class="total-amount">{{ quote.neto | clp }}</span>
       </div>
       <div class="total-row">
-        <span class="total-label">I.V.A (19%)</span>
-        <span class="total-amount">{{ quote.iva | clp }}</span>
+        <span class="total-label">I.V.A ({% if quote.show_iva %}19{% else %}0{% endif %}%)</span>
+        <span class="total-amount">{% if quote.show_iva %}{{ quote.iva | clp }}{% else %}{{ 0 | clp }}{% endif %}</span>
       </div>
       <div class="total-row">
         <span class="total-label">TOTAL</span>
-        <span class="total-amount">{{ quote.total | clp }}</span>
+        <span class="total-amount">{% if quote.show_iva %}{{ quote.total | clp }}{% else %}{{ quote.neto | clp }}{% endif %}</span>
       </div>
     </div>
   </div>

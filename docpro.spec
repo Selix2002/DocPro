@@ -296,8 +296,28 @@ exe = EXE(
     icon=_icon if Path(_icon).exists() else None,
 )
 
+exe_debug = EXE(
+    pyz,
+    a.scripts,
+    [],
+    exclude_binaries=True,
+    name="DocPro-debug",
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=False,
+    console=True,
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
+    icon=_icon if Path(_icon).exists() else None,
+)
+
 coll = COLLECT(
     exe,
+    exe_debug,
     a.binaries,
     a.datas,
     strip=False,

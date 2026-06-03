@@ -14,6 +14,7 @@ class Quote(Base):
     )
     issue_date: Mapped[str]
     observations: Mapped[str | None]
+    show_iva: Mapped[bool] = mapped_column(server_default="1")
     neto: Mapped[float] = mapped_column(server_default="0")
     iva: Mapped[float] = mapped_column(server_default="0")
     total: Mapped[float] = mapped_column(server_default="0")

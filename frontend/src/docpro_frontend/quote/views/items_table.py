@@ -116,6 +116,9 @@ class ItemsTable(QWidget):
         self._adjust_height()
         self._recalc_totals()
 
+    def set_show_iva(self, show_iva: bool) -> None:
+        self._totals.set_show_iva(show_iva)
+
     def set_readonly(self, readonly: bool) -> None:
         self._readonly = readonly
         self._add_btn.setEnabled(not readonly)

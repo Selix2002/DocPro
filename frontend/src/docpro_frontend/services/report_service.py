@@ -252,7 +252,6 @@ class ReportService(QObject):
     def _on_client_not_found(self) -> None:
         self._current_client_id = None
         self._form.client_section.show_not_found()
-        self._form.client_section.clear_client_fields()
 
     # ── Number editing ────────────────────────────────────────────────────────
 

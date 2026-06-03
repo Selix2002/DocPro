@@ -33,14 +33,22 @@ class TotalsBar(QWidget):
 
         outer.addLayout(table)
 
+        self._show_iva = True
+        self._last: tuple[float, float, float] = (0.0, 0.0, 0.0)
         self.update_totals(0.0, 0.0, 0.0)
 
     # ── Public ────────────────────────────────────────────────────────────────
 
+    def set_show_iva(self, show_iva: bool) -> None:
+        self._show_iva = show_iva
+        self._iva_row["label"].setText("IVA (19%)" if show_iva else "IVA (0%)")
+        self.update_totals(*self._last)
+
     def update_totals(self, neto: float, iva: float, total: float) -> None:
+        self._last = (neto, iva, total)
         self._neto_row["value"].setText(_fmt_clp(neto))
-        self._iva_row["value"].setText(_fmt_clp(iva))
-        self._total_row["value"].setText(_fmt_clp(total))
+        self._iva_row["value"].setText(_fmt_clp(iva if self._show_iva else 0.0))
+        self._total_row["value"].setText(_fmt_clp(total if self._show_iva else neto))
 
     # ── Internal ──────────────────────────────────────────────────────────────
 
@@ -61,4 +69,4 @@ class TotalsBar(QWidget):
         row.addWidget(lbl)
         row.addWidget(val)
 
-        return {"layout": row, "value": val}
+        return {"layout": row, "label": lbl, "value": val}

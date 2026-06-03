@@ -20,14 +20,28 @@ _DEFAULT_PREFIXES = {
 
 def next_number(session: Session, doc_type: str) -> str:
     """Return the next document number (e.g. 'COT-0024') and increment the counter.
-    Reads both prefix and counter from the settings table so the Settings UI
-    and the numbering service stay in sync on the same keys.
+    Uses max(DB actual max, settings counter) so the counter never collides with
+    an existing document even if the settings counter drifted out of sync.
     """
-    repo    = SettingRepository(session)
-    prefix  = repo.get_or_none(_PREFIX_KEYS[doc_type]) or _DEFAULT_PREFIXES[doc_type]
-    key     = _COUNTER_KEYS[doc_type]
+    from docpro_backend.schema.documents.documents import Document
+
+    repo   = SettingRepository(session)
+    prefix = repo.get_or_none(_PREFIX_KEYS[doc_type]) or _DEFAULT_PREFIXES[doc_type]
+    key    = _COUNTER_KEYS[doc_type]
+
+    numbers = (
+        session.query(Document.number)
+        .filter(Document.type == doc_type)
+        .all()
+    )
+    db_max = 0
+    for (num,) in numbers:
+        m = re.search(r"(\d+)$", num)
+        if m:
+            db_max = max(db_max, int(m.group(1)))
+
     current = int(repo.get_or_none(key) or "0")
-    nxt     = current + 1
+    nxt     = max(db_max, current) + 1
     repo.set(key, str(nxt))
     return f"{prefix}{nxt:04d}"
 

@@ -19,6 +19,7 @@ class QuoteInput:
     number: str
     issue_date: str
     observations: str | None = None
+    show_iva: bool = True
     items: list[QuoteItemInput] = field(default_factory=list)
 
 
@@ -50,6 +51,7 @@ class QuoteReadModel:
     status: str
     issue_date: str
     observations: str | None
+    show_iva: bool
     neto: float
     iva: float
     total: float
@@ -79,6 +81,7 @@ class QuoteReadModel:
             status=doc.status,
             issue_date=quote.issue_date,
             observations=quote.observations,
+            show_iva=quote.show_iva,
             neto=quote.neto,
             iva=quote.iva,
             total=quote.total,

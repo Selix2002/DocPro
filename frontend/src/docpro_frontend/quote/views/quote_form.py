@@ -2,7 +2,7 @@ from datetime import date
 
 from PySide6.QtWidgets import (
     QWidget, QScrollArea, QVBoxLayout, QHBoxLayout, QLabel,
-    QDateEdit, QTextEdit, QFrame, QSizePolicy, QLineEdit,
+    QDateEdit, QTextEdit, QFrame, QSizePolicy, QLineEdit, QCheckBox,
 )
 from PySide6.QtCore import Signal, Qt, QDate, QThreadPool
 
@@ -84,6 +84,7 @@ class QuoteForm(QWidget):
         self._obs.textChanged.connect(self.field_changed)
         self._items_table.data_changed.connect(self.field_changed)
         self._client.client_data_changed.connect(self.field_changed)
+        self._iva_toggle.toggled.connect(self._on_iva_toggled)
 
     def _on_company_loaded(self, data: dict) -> None:
         if not data:
@@ -99,6 +100,7 @@ class QuoteForm(QWidget):
             "number":       self._number_input.text().strip(),
             "issue_date":   self._issue_date.date().toString("yyyy-MM-dd"),
             "observations": self._obs.toPlainText().strip() or None,
+            "show_iva":     self._iva_toggle.isChecked(),
             "items":        self._items_table.get_data(),
         }
 
@@ -132,6 +134,9 @@ class QuoteForm(QWidget):
             for i in rm.items
         ])
 
+        # IVA toggle
+        self._iva_toggle.setChecked(getattr(rm, "show_iva", True))
+
         # Observations
         self._obs.setPlainText(rm.observations or "")
 
@@ -149,6 +154,7 @@ class QuoteForm(QWidget):
         self._client.set_readonly(readonly)
         self._items_table.set_readonly(readonly)
         self._ai_btn.setEnabled(not readonly)
+        self._iva_toggle.setEnabled(not readonly)
 
     def reset(self) -> None:
         self._number_input.clear()
@@ -157,9 +163,14 @@ class QuoteForm(QWidget):
         self._client.reset()
         self._items_table.clear()
         self._obs.clear()
+        self._iva_toggle.setChecked(True)
 
     def get_client_data(self) -> dict:
         return self._client.get_client_data()
+
+    def _on_iva_toggled(self, checked: bool) -> None:
+        self._items_table.set_show_iva(checked)
+        self.field_changed.emit()
 
     @property
     def client_section(self) -> ClientSection:
@@ -262,6 +273,22 @@ class QuoteForm(QWidget):
         h.addSpacing(8)
         h.addWidget(label)
         h.addStretch()
+
+        self._iva_toggle = QCheckBox("Incluir IVA (19%)")
+        self._iva_toggle.setChecked(True)
+        self._iva_toggle.setStyleSheet("""
+            QCheckBox { font-size: 13px; color: #374151; spacing: 6px; }
+            QCheckBox::indicator {
+                width: 15px; height: 15px;
+                border-radius: 3px; border: 1.5px solid #D1D5DB; background: #FFFFFF;
+            }
+            QCheckBox::indicator:checked {
+                background: #B45309; border-color: #B45309;
+            }
+            QCheckBox:disabled { color: #9CA3AF; }
+        """)
+        h.addWidget(self._iva_toggle)
+        h.addSpacing(4)
         layout.addWidget(head)
 
         # Items table (owns totals bar internally)
