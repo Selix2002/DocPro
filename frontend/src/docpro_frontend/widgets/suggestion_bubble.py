@@ -46,8 +46,8 @@ class SuggestionBubble(QFrame):
 
     def show_suggestion(self, field: QTextEdit, suggestion: str) -> None:
         self._field = field
-        self._suggestion = suggestion
-        self._preview.setPlainText(suggestion)
+        self._suggestion = suggestion.upper()
+        self._preview.setPlainText(self._suggestion)
         self._position_near(field)
         self.show()
         self.raise_()

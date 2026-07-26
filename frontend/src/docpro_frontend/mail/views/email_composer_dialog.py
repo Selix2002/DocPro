@@ -24,10 +24,11 @@ _MAX_BYTES = 25 * 1024 * 1024  # 25 MB — Gmail hard limit
 class EmailComposerDialog(QDialog):
     """
     Modal dialog for composing an email before sending via Gmail.
-    All fields are pre-filled but editable. The document PDF is a fixed
-    attachment; the user can add extra files of any type.
-    Call get_data() after exec() == Accepted to retrieve
-    (recipient, subject, body, extra_attachments).
+    All fields are pre-filled but editable. The document PDF is pre-attached
+    with an editable filename, and can be detached / re-attached. The user
+    can also add extra files of any type.
+    Call get_data() after accepted to retrieve
+    (recipient, subject, body, pdf_path_or_none, pdf_name, extra_attachments).
     """
 
     def __init__(
@@ -39,12 +40,20 @@ class EmailComposerDialog(QDialog):
         accent_color: str = "#B45309",
         parent=None,
     ) -> None:
-        super().__init__(parent)
+        # Pass None to avoid Windows "owned window" behavior (minimizes with parent)
+        super().__init__(None)
+        self._real_parent = parent
         self.setWindowTitle("Enviar por Gmail")
         self.setMinimumWidth(560)
+        self.setWindowFlags(
+            Qt.WindowType.Window
+            | Qt.WindowType.WindowCloseButtonHint
+            | Qt.WindowType.WindowMinimizeButtonHint
+        )
         self.setStyleSheet(_dialog_style(accent_color))
 
         self._pdf_path     = pdf_path
+        self._pdf_attached = True
         self._extra_paths: list[Path] = []
         self._accent       = accent_color
 
@@ -71,17 +80,39 @@ class EmailComposerDialog(QDialog):
         self._body.setMinimumHeight(130)
         root.addWidget(self._body)
 
-        # Fixed attachment (the document PDF — cannot be removed)
-        fixed_row = QHBoxLayout()
-        fixed_row.setSpacing(6)
+        # Document PDF — editable filename, can be detached and re-attached
+        self._pdf_row = QWidget()
+        self._pdf_row.setFixedHeight(34)
+        pdf_row_layout = QHBoxLayout(self._pdf_row)
+        pdf_row_layout.setContentsMargins(0, 0, 0, 0)
+        pdf_row_layout.setSpacing(6)
+
         clip_lbl = QLabel("📎")
-        clip_lbl.setStyleSheet("font-size: 16px;")
-        fixed_row.addWidget(clip_lbl)
-        name_lbl = QLabel(pdf_path.name)
-        name_lbl.setStyleSheet("color: #374151; font-size: 14px;")
-        fixed_row.addWidget(name_lbl)
-        fixed_row.addStretch()
-        root.addLayout(fixed_row)
+        clip_lbl.setStyleSheet("font-size: 16px; background: transparent;")
+        pdf_row_layout.addWidget(clip_lbl)
+
+        self._pdf_name_input = QLineEdit(pdf_path.name)
+        self._pdf_name_input.setStyleSheet(
+            "QLineEdit { border: 1px solid #E5E7EB; border-radius: 6px; "
+            "padding: 4px 8px; font-size: 14px; color: #374151; background: #F9FAFB; }"
+            f"QLineEdit:focus {{ border-color: {accent_color}; background: #FFFFFF; }}"
+        )
+        pdf_row_layout.addWidget(self._pdf_name_input, 1)
+
+        detach_btn = QPushButton("×")
+        detach_btn.setFixedSize(22, 22)
+        detach_btn.setStyleSheet(_BTN_REMOVE)
+        detach_btn.setToolTip("Desadjuntar documento")
+        detach_btn.clicked.connect(self._on_detach_pdf)
+        pdf_row_layout.addWidget(detach_btn)
+
+        root.addWidget(self._pdf_row)
+
+        self._reattach_btn = QPushButton(f"＋  Volver a adjuntar «{pdf_path.name}»")
+        self._reattach_btn.setStyleSheet(_BTN_GHOST)
+        self._reattach_btn.clicked.connect(self._on_reattach_pdf)
+        self._reattach_btn.hide()
+        root.addWidget(self._reattach_btn)
 
         # Extra attachments area — scrollable so the dialog never grows off-screen
         _ROW_H    = 32          # px per row
@@ -129,18 +160,44 @@ class EmailComposerDialog(QDialog):
 
     # ── Public ────────────────────────────────────────────────────────
 
-    def get_data(self) -> tuple[str, str, str, list[Path]]:
+    def get_data(self) -> tuple[str, str, str, Path | None, str, list[Path]]:
+        pdf_path = self._pdf_path if self._pdf_attached else None
+        pdf_name = self._normalized_pdf_name()
         return (
             self._recipient.text().strip(),
             self._subject.text().strip(),
             self._body.toPlainText().strip(),
+            pdf_path,
+            pdf_name,
             list(self._extra_paths),
         )
+
+    def _normalized_pdf_name(self) -> str:
+        name = self._pdf_name_input.text().strip() or self._pdf_path.name
+        if not name.lower().endswith(".pdf"):
+            name += ".pdf"
+        return name
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if self._real_parent:
+            p = self._real_parent.window()
+            center = p.geometry().center()
+            self.move(center.x() - self.width() // 2, center.y() - self.height() // 2)
 
     # ── Overrides ─────────────────────────────────────────────────────
 
     def accept(self) -> None:
-        total = self._pdf_path.stat().st_size
+        if not self._pdf_attached and not self._extra_paths:
+            dlg = QMessageBox(self)
+            dlg.setWindowTitle("Sin adjuntos")
+            dlg.setText("Debes adjuntar al menos un archivo antes de enviar.")
+            dlg.setIcon(QMessageBox.Icon.Warning)
+            dlg.setStyleSheet(_dialog_style(self._accent))
+            dlg.addButton("Entendido", QMessageBox.ButtonRole.RejectRole)
+            dlg.exec()
+            return
+        total = self._pdf_path.stat().st_size if self._pdf_attached else 0
         for p in self._extra_paths:
             try:
                 total += p.stat().st_size
@@ -162,6 +219,16 @@ class EmailComposerDialog(QDialog):
         super().accept()
 
     # ── Internal ──────────────────────────────────────────────────────
+
+    def _on_detach_pdf(self) -> None:
+        self._pdf_attached = False
+        self._pdf_row.hide()
+        self._reattach_btn.show()
+
+    def _on_reattach_pdf(self) -> None:
+        self._pdf_attached = True
+        self._reattach_btn.hide()
+        self._pdf_row.show()
 
     def _on_add_file(self) -> None:
         paths, _ = QFileDialog.getOpenFileNames(

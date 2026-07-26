@@ -17,6 +17,9 @@ class HeaderWidget(QWidget):
     settings_requested   = Signal()
     search_changed       = Signal(str)
     filter_changed       = Signal(object, object)  # type_val, status_val
+    switch_profile_requested = Signal(str)
+    new_profile_requested = Signal()
+    rename_profile_requested = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -48,6 +51,9 @@ class HeaderWidget(QWidget):
         self._menu_bar.new_report_requested.connect(self.new_report_requested)
         self._menu_bar.import_pdf_requested.connect(self.import_pdf_requested)
         self._menu_bar.settings_requested.connect(self.settings_requested)
+        self._menu_bar.switch_profile_requested.connect(self.switch_profile_requested)
+        self._menu_bar.new_profile_requested.connect(self.new_profile_requested)
+        self._menu_bar.rename_profile_requested.connect(self.rename_profile_requested)
         self._toolbar.search_changed.connect(self.search_changed)
         self._toolbar.filter_toggled.connect(self._toggle_filter_bar)
         self._filter_bar.filter_changed.connect(self.filter_changed)
@@ -55,6 +61,10 @@ class HeaderWidget(QWidget):
     @property
     def search_field(self):
         return self._toolbar.search_field
+
+    @property
+    def profile_chip(self):
+        return self._menu_bar.profile_chip
 
     def _toggle_filter_bar(self) -> None:
         self._filter_open = not self._filter_open

@@ -3,7 +3,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QThreadPool
 
-from docpro_backend.db.engine import engine
+from docpro_backend.db.engine import dispose_engine, get_db_path
 from docpro_backend.db.session import SessionLocal
 from docpro_backend.repositories.config.company_profile import CompanyProfileRepository
 from docpro_backend.repositories.config.settings import SettingRepository
@@ -18,15 +18,18 @@ from docpro_frontend.settings.views.settings_widget import SettingsWidget
 
 
 class SettingsService:
-    def __init__(self, widget: SettingsWidget, db_path: Path) -> None:
+    def __init__(self, widget: SettingsWidget, db_path: Path | None = None) -> None:
         self._widget = widget
         self._forms = widget.content
-        self._db_path = db_path
         self._enc = EncryptionService()
         self._groq_svc = GroqService()
         self._backup_svc = BackupService()
         self._clean_snapshot: dict = {}
         self._wire_signals()
+
+    @property
+    def _db_path(self) -> Path:
+        return get_db_path()
 
     # ── Public ────────────────────────────────────────────────────────
 
@@ -36,6 +39,7 @@ class SettingsService:
             self._load_perfil(session)
             self._load_numeracion(session)
             self._load_apariencia(session)
+            self._load_template(session)
             self._load_groq(session)
             self._load_backup(session)
         finally:
@@ -49,6 +53,7 @@ class SettingsService:
             self._save_perfil(session)
             self._save_numeracion(session)
             self._save_apariencia(session)
+            self._save_template(session)
             self._save_groq(session)
             session.commit()
         finally:
@@ -87,6 +92,17 @@ class SettingsService:
         self._forms.appearance_form.set_theme(mode)
         theme.activate(mode)
 
+    def _load_template(self, session) -> None:
+        repo = SettingRepository(session)
+        self._forms.template_page.form.set_data(
+            primary=repo.get_or_none("theme.primary") or "",
+            accent=repo.get_or_none("theme.accent") or "",
+            text=repo.get_or_none("theme.text") or "",
+            font_family=repo.get_or_none("theme.font_family") or "Arial",
+            header_imagen=repo.get_or_none("header.imagen") or "",
+        )
+        self._forms.template_page.refresh_preview()
+
     def _load_gmail(self) -> None:
         token = self._enc.load_gmail_token()
         if token:
@@ -124,10 +140,15 @@ class SettingsService:
         self._forms.backup_form.set_last_backup(text)
 
     def _take_snapshot(self) -> dict:
+        template_data = {
+            f"template.{k}": v
+            for k, v in self._forms.template_page.form.get_data().items()
+        }
         return {
             **self._forms.company_form.get_data(),
             **self._forms.numbering_form.get_data(),
             **self._forms.appearance_form.get_data(),
+            **template_data,
             **self._forms.groq_form.get_data(),
         }
 
@@ -157,6 +178,15 @@ class SettingsService:
     def _save_apariencia(self, session) -> None:
         mode = self._forms.appearance_form.get_data()["theme"]
         SettingRepository(session).set("theme", mode)
+
+    def _save_template(self, session) -> None:
+        data = self._forms.template_page.form.get_data()
+        repo = SettingRepository(session)
+        repo.set("theme.primary",     data.get("primary")       or "")
+        repo.set("theme.accent",      data.get("accent")        or "")
+        repo.set("theme.text",        data.get("text")          or "")
+        repo.set("theme.font_family", data.get("font_family")   or "")
+        repo.set("header.imagen",     data.get("header_imagen") or "")
 
     def _save_groq(self, session) -> None:
         data = self._forms.groq_form.get_data()
@@ -245,5 +275,5 @@ class SettingsService:
         if not restored:
             return
         # Dispose connection pool so next SessionLocal() opens a fresh connection
-        engine.dispose()
+        dispose_engine()
         self.load_all()

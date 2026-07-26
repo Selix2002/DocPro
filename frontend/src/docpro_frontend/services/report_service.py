@@ -5,7 +5,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QObject, QThreadPool, QTimer, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QKeySequence, QShortcut
-from PySide6.QtWidgets import QDialog, QFileDialog, QMessageBox
+from PySide6.QtWidgets import QFileDialog, QMessageBox
 
 from docpro_frontend.mail.views.email_composer_dialog import EmailComposerDialog
 from docpro_frontend.report.views.report_widget import ReportWidget
@@ -135,16 +135,17 @@ class ReportService(QObject):
         data          = self._form.get_data()
         sections_data = data["sections"]
         trabajo_data  = data.get("trabajo")
+        observations  = data.get("observations")
         client_data   = self._form.get_client_data()
         doc_id        = self._doc_id
         client_id     = self._current_client_id
 
         if client_id is None:
-            worker = Worker(lambda: _create_client_and_report(client_data, sections_data, trabajo_data))
+            worker = Worker(lambda: _create_client_and_report(client_data, sections_data, trabajo_data, observations))
             worker.signals.result.connect(self._on_client_and_report_created)
         else:
             worker = Worker(
-                lambda: _save_with_client(client_id, client_data, sections_data, doc_id, trabajo_data)
+                lambda: _save_with_client(client_id, client_data, sections_data, doc_id, trabajo_data, observations)
             )
             worker.signals.result.connect(
                 self._on_created if doc_id is None else self._on_autosaved
@@ -480,6 +481,10 @@ class ReportService(QObject):
     def _on_send_gmail(self) -> None:
         if self._doc_id is None or self._status != "Finalizado":
             return
+        if getattr(self, "_composer_dlg", None) is not None:
+            self._composer_dlg.showNormal()
+            self._composer_dlg.activateWindow()
+            return
         if not self._gmail_svc.is_online() or not self._gmail_svc.is_connected():
             self._offer_mailto()
             return
@@ -518,17 +523,23 @@ class ReportService(QObject):
             accent_color="#1D4ED8",
             parent=self._widget,
         )
-        if dlg.exec() != QDialog.DialogCode.Accepted:
-            return
-        r, s, b, extras = dlg.get_data()
-        self._do_send(r, s, b, pdf_path, expected_doc_id, extras)
+        self._composer_dlg = dlg  # prevent garbage collection
+
+        def _on_accepted():
+            r, s, b, chosen_pdf, pdf_name, extras = dlg.get_data()
+            self._do_send(r, s, b, chosen_pdf, pdf_name, expected_doc_id, extras)
+
+        dlg.accepted.connect(_on_accepted)
+        dlg.finished.connect(lambda _: setattr(self, "_composer_dlg", None))
+        dlg.show()
 
     def _do_send(
         self,
         recipient: str,
         subject: str,
         body: str,
-        pdf_path: Path,
+        pdf_path: Path | None,
+        pdf_name: str | None,
         doc_id: int,
         extra_attachments: list[Path] | None = None,
     ) -> None:
@@ -536,7 +547,8 @@ class ReportService(QObject):
         gmail_svc = self._gmail_svc
         worker = Worker(
             lambda: _send_email_via_gmail(
-                gmail_svc, recipient, subject, body, pdf_path, doc_id, extra_attachments or []
+                gmail_svc, recipient, subject, body, pdf_path, doc_id,
+                extra_attachments or [], pdf_name,
             )
         )
         worker.signals.result.connect(self._on_send_success)
@@ -642,7 +654,7 @@ def _load_report(doc_id: int):
         session.close()
 
 
-def _create_client_and_report(client_data: dict, sections_data: list[dict], trabajo_data: dict | None) -> dict:
+def _create_client_and_report(client_data: dict, sections_data: list[dict], trabajo_data: dict | None, observations: str | None = None) -> dict:
     try:
         from docpro_backend.db.session import SessionLocal
         from docpro_backend.repositories.config.clients import ClientRepository
@@ -665,7 +677,7 @@ def _create_client_and_report(client_data: dict, sections_data: list[dict], trab
             )
         inp = ReportInput(client_id=client.id, number="")
         result = create_report(session, inp)
-        _apply_sections(session, result.document_id, sections_data, update_sections, trabajo_data)
+        _apply_sections(session, result.document_id, sections_data, update_sections, trabajo_data, observations)
         session.commit()
         return {
             "client_id": client.id,
@@ -685,6 +697,7 @@ def _save_with_client(
     sections_data: list[dict],
     doc_id: int | None,
     trabajo_data: dict | None = None,
+    observations: str | None = None,
 ):
     try:
         from docpro_backend.db.session import SessionLocal
@@ -705,11 +718,11 @@ def _save_with_client(
         if doc_id is None:
             inp    = ReportInput(client_id=client_id, number="")
             result = create_report(session, inp)
-            _apply_sections(session, result.document_id, sections_data, update_sections, trabajo_data)
+            _apply_sections(session, result.document_id, sections_data, update_sections, trabajo_data, observations)
             session.commit()
             return result
         else:
-            result = _apply_sections(session, doc_id, sections_data, update_sections, trabajo_data)
+            result = _apply_sections(session, doc_id, sections_data, update_sections, trabajo_data, observations)
             session.commit()
             return result
     except Exception:
@@ -725,6 +738,7 @@ def _apply_sections(
     sections_data: list[dict],
     update_sections_fn,
     trabajo_data: dict | None = None,
+    observations: str | None = None,
 ):
     """Convert form sections data to SectionInput list and call update_sections."""
     import json as _json
@@ -776,6 +790,21 @@ def _apply_sections(
                 content=sub.get("content") or None,
                 position=sub["position"],
             ))
+
+    if observations is not None:
+        last_position = max((s["position"] for s in sections_data), default=0)
+        inputs.append(SectionInput(
+            temp_id="s_observations",
+            parent_temp_id=None,
+            title="Observaciones",
+            content=None,
+            content_json=_json.dumps(
+                {"_kind": "observations", "text": observations},
+                ensure_ascii=False,
+            ),
+            position=last_position + 1,
+        ))
+
     return update_sections_fn(session, doc_id, inputs)
 
 
@@ -835,6 +864,7 @@ def _render_pdf_preview(doc_id: int, slot: int) -> Path:
     from docpro_backend.db.session import SessionLocal
     from docpro_backend.services.report_service import get_report, get_company, get_firma
     from docpro_backend.services.pdf_service import render_report_pdf
+    from docpro_backend.services.theme_service import get_theme, get_header_imagen
 
     tmp_dir = Path(_tmp.gettempdir()) / "docpro"
     tmp_dir.mkdir(parents=True, exist_ok=True)
@@ -845,10 +875,15 @@ def _render_pdf_preview(doc_id: int, slot: int) -> Path:
         report       = get_report(session, doc_id)
         company      = get_company(session)
         firma_nombre, firma_cargo, firma_imagen = get_firma(session)
+        theme        = get_theme(session)
+        header       = get_header_imagen(session)
     finally:
         session.close()
 
-    render_report_pdf(report, company, firma_nombre, firma_cargo, firma_imagen, path)
+    render_report_pdf(
+        report, company, firma_nombre, firma_cargo, firma_imagen, path,
+        theme=theme, header_imagen=header,
+    )
     return path
 
 
@@ -856,16 +891,22 @@ def _render_pdf_to_path(doc_id: int, path: Path) -> Path:
     from docpro_backend.db.session import SessionLocal
     from docpro_backend.services.report_service import get_report, get_company, get_firma
     from docpro_backend.services.pdf_service import render_report_pdf
+    from docpro_backend.services.theme_service import get_theme, get_header_imagen
 
     session = SessionLocal()
     try:
         report       = get_report(session, doc_id)
         company      = get_company(session)
         firma_nombre, firma_cargo, firma_imagen = get_firma(session)
+        theme        = get_theme(session)
+        header       = get_header_imagen(session)
     finally:
         session.close()
 
-    render_report_pdf(report, company, firma_nombre, firma_cargo, firma_imagen, path)
+    render_report_pdf(
+        report, company, firma_nombre, firma_cargo, firma_imagen, path,
+        theme=theme, header_imagen=header,
+    )
     return path
 
 
@@ -874,6 +915,7 @@ def _render_report_for_send(doc_id: int) -> Path:
     from docpro_backend.db.session import SessionLocal
     from docpro_backend.services.report_service import get_report, get_company, get_firma
     from docpro_backend.services.pdf_service import render_report_pdf, report_pdf_filename
+    from docpro_backend.services.theme_service import get_theme, get_header_imagen
 
     tmp_dir = Path(_tmp.gettempdir()) / "docpro"
     tmp_dir.mkdir(parents=True, exist_ok=True)
@@ -883,11 +925,16 @@ def _render_report_for_send(doc_id: int) -> Path:
         report       = get_report(session, doc_id)
         company      = get_company(session)
         firma_nombre, firma_cargo, firma_imagen = get_firma(session)
+        theme        = get_theme(session)
+        header       = get_header_imagen(session)
     finally:
         session.close()
 
     path = tmp_dir / report_pdf_filename(report)
-    render_report_pdf(report, company, firma_nombre, firma_cargo, firma_imagen, path)
+    render_report_pdf(
+        report, company, firma_nombre, firma_cargo, firma_imagen, path,
+        theme=theme, header_imagen=header,
+    )
     return path
 
 
@@ -896,9 +943,10 @@ def _send_email_via_gmail(
     recipient: str,
     subject: str,
     body: str,
-    pdf_path: Path,
+    pdf_path: Path | None,
     doc_id: int,
     extra_attachments: list[Path] | None = None,
+    pdf_name: str | None = None,
 ) -> None:
     from docpro_backend.db.session import SessionLocal
     from docpro_backend.repositories.documents.documents import DocumentRepository
@@ -910,7 +958,10 @@ def _send_email_via_gmail(
             "No hay credenciales válidas de Gmail. "
             "Reconecta la cuenta en Configuración → Gmail."
         )
-    gmail_svc.send(creds, recipient, subject, body, pdf_path, extra_attachments or [])
+    gmail_svc.send(
+        creds, recipient, subject, body, pdf_path,
+        extra_attachments or [], pdf_name,
+    )
 
     session = SessionLocal()
     try:

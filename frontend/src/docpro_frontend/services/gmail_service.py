@@ -115,10 +115,15 @@ class GmailService:
         recipient: str,
         subject: str,
         body: str,
-        pdf_path: Path,
+        pdf_path: Path | None,
         extra_attachments: list[Path] | None = None,
+        pdf_name: str | None = None,
     ) -> None:
-        """Build MIME message and send via Gmail API. Raises on failure."""
+        """Build MIME message and send via Gmail API. Raises on failure.
+
+        pdf_path may be None to send without the primary document.
+        pdf_name overrides the primary PDF filename shown to the recipient.
+        """
         import base64
         import mimetypes
         from email import encoders
@@ -133,8 +138,14 @@ class GmailService:
         msg["Subject"] = subject
         msg.attach(MIMEText(body, "plain", "utf-8"))
 
-        for path in [pdf_path] + (extra_attachments or []):
-            mime_type, _ = mimetypes.guess_type(str(path))
+        attachments: list[tuple[Path, str]] = []
+        if pdf_path is not None:
+            attachments.append((pdf_path, pdf_name or pdf_path.name))
+        for extra in extra_attachments or []:
+            attachments.append((extra, extra.name))
+
+        for path, filename in attachments:
+            mime_type, _ = mimetypes.guess_type(filename)
             main, sub = (mime_type or "application/octet-stream").split("/", 1)
             with path.open("rb") as f:
                 part = MIMEBase(main, sub)
@@ -142,7 +153,7 @@ class GmailService:
             encoders.encode_base64(part)
             part.add_header(
                 "Content-Disposition",
-                f'attachment; filename="{path.name}"',
+                f'attachment; filename="{filename}"',
             )
             msg.attach(part)
 

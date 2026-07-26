@@ -5,7 +5,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QObject, QThreadPool, QTimer, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QKeySequence, QShortcut
-from PySide6.QtWidgets import QDialog, QFileDialog, QMessageBox
+from PySide6.QtWidgets import QFileDialog, QMessageBox
 
 from docpro_frontend.mail.views.email_composer_dialog import EmailComposerDialog
 from docpro_frontend.quote.views.quote_widget import QuoteWidget
@@ -548,6 +548,10 @@ class QuoteService(QObject):
     def _on_send_gmail(self) -> None:
         if self._doc_id is None or self._status != "Finalizado":
             return
+        if getattr(self, "_composer_dlg", None) is not None:
+            self._composer_dlg.showNormal()
+            self._composer_dlg.activateWindow()
+            return
         if not self._gmail_svc.is_online() or not self._gmail_svc.is_connected():
             self._offer_mailto()
             return
@@ -586,17 +590,23 @@ class QuoteService(QObject):
             accent_color="#B45309",
             parent=self._widget,
         )
-        if dlg.exec() != QDialog.DialogCode.Accepted:
-            return
-        r, s, b, extras = dlg.get_data()
-        self._do_send(r, s, b, pdf_path, expected_doc_id, extras)
+        self._composer_dlg = dlg  # prevent garbage collection
+
+        def _on_accepted():
+            r, s, b, chosen_pdf, pdf_name, extras = dlg.get_data()
+            self._do_send(r, s, b, chosen_pdf, pdf_name, expected_doc_id, extras)
+
+        dlg.accepted.connect(_on_accepted)
+        dlg.finished.connect(lambda _: setattr(self, "_composer_dlg", None))
+        dlg.show()
 
     def _do_send(
         self,
         recipient: str,
         subject: str,
         body: str,
-        pdf_path: Path,
+        pdf_path: Path | None,
+        pdf_name: str | None,
         doc_id: int,
         extra_attachments: list[Path] | None = None,
     ) -> None:
@@ -604,7 +614,8 @@ class QuoteService(QObject):
         gmail_svc = self._gmail_svc
         worker = Worker(
             lambda: _send_email_via_gmail(
-                gmail_svc, recipient, subject, body, pdf_path, doc_id, extra_attachments or []
+                gmail_svc, recipient, subject, body, pdf_path, doc_id,
+                extra_attachments or [], pdf_name,
             )
         )
         worker.signals.result.connect(self._on_send_success)
@@ -1019,6 +1030,7 @@ def _render_pdf_preview(doc_id: int, slot: int) -> Path:
     from docpro_backend.db.session import SessionLocal
     from docpro_backend.services.quote_service import get_quote, get_company
     from docpro_backend.services.pdf_service import render_quote_pdf
+    from docpro_backend.services.theme_service import get_theme, get_header_imagen
 
     tmp_dir = Path(_tmp.gettempdir()) / "docpro"
     tmp_dir.mkdir(parents=True, exist_ok=True)
@@ -1028,10 +1040,12 @@ def _render_pdf_preview(doc_id: int, slot: int) -> Path:
     try:
         quote   = get_quote(session, doc_id)
         company = get_company(session)
+        theme   = get_theme(session)
+        header  = get_header_imagen(session)
     finally:
         session.close()
 
-    render_quote_pdf(quote, company, path)
+    render_quote_pdf(quote, company, path, theme=theme, header_imagen=header)
     return path
 
 
@@ -1039,15 +1053,18 @@ def _render_pdf_to_path(doc_id: int, path: Path) -> Path:
     from docpro_backend.db.session import SessionLocal
     from docpro_backend.services.quote_service import get_quote, get_company
     from docpro_backend.services.pdf_service import render_quote_pdf
+    from docpro_backend.services.theme_service import get_theme, get_header_imagen
 
     session = SessionLocal()
     try:
         quote   = get_quote(session, doc_id)
         company = get_company(session)
+        theme   = get_theme(session)
+        header  = get_header_imagen(session)
     finally:
         session.close()
 
-    render_quote_pdf(quote, company, path)
+    render_quote_pdf(quote, company, path, theme=theme, header_imagen=header)
     return path
 
 
@@ -1056,6 +1073,7 @@ def _render_pdf_for_send(doc_id: int) -> Path:
     from docpro_backend.db.session import SessionLocal
     from docpro_backend.services.quote_service import get_quote, get_company
     from docpro_backend.services.pdf_service import render_quote_pdf, quote_pdf_filename
+    from docpro_backend.services.theme_service import get_theme, get_header_imagen
 
     tmp_dir = Path(_tmp.gettempdir()) / "docpro"
     tmp_dir.mkdir(parents=True, exist_ok=True)
@@ -1064,11 +1082,13 @@ def _render_pdf_for_send(doc_id: int) -> Path:
     try:
         quote   = get_quote(session, doc_id)
         company = get_company(session)
+        theme   = get_theme(session)
+        header  = get_header_imagen(session)
     finally:
         session.close()
 
     path = tmp_dir / quote_pdf_filename(quote)
-    render_quote_pdf(quote, company, path)
+    render_quote_pdf(quote, company, path, theme=theme, header_imagen=header)
     return path
 
 
@@ -1077,9 +1097,10 @@ def _send_email_via_gmail(
     recipient: str,
     subject: str,
     body: str,
-    pdf_path: Path,
+    pdf_path: Path | None,
     doc_id: int,
     extra_attachments: list[Path] | None = None,
+    pdf_name: str | None = None,
 ) -> None:
     from docpro_backend.db.session import SessionLocal
     from docpro_backend.repositories.documents.documents import DocumentRepository
@@ -1091,7 +1112,10 @@ def _send_email_via_gmail(
             "No hay credenciales válidas de Gmail. "
             "Reconecta la cuenta en Configuración → Gmail."
         )
-    gmail_svc.send(creds, recipient, subject, body, pdf_path, extra_attachments or [])
+    gmail_svc.send(
+        creds, recipient, subject, body, pdf_path,
+        extra_attachments or [], pdf_name,
+    )
 
     session = SessionLocal()
     try:

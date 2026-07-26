@@ -63,8 +63,11 @@ class ClientSection(QFrame):
         body_layout.addLayout(grid)
         root.addWidget(body)
 
+        self._phone["input"].setText("+56 9 ")
+
         # Wire RUT input
         self._rut_input.textEdited.connect(self._on_rut_edited)
+        self._rut_input.setMaxLength(12)  # 99.999.999-K
 
         # Relay edits from client fields so the form can trigger autosave
         for field in (self._name, self._address, self._email, self._phone):
@@ -89,8 +92,9 @@ class ClientSection(QFrame):
         self._set_badge("new")
 
     def clear_client_fields(self) -> None:
-        for field in (self._name, self._address, self._email, self._phone):
+        for field in (self._name, self._address, self._email):
             field["input"].clear()
+        self._phone["input"].setText("+56 9 ")
         self._set_badge(None)
 
     def get_client_data(self) -> dict:
@@ -185,8 +189,27 @@ class ClientSection(QFrame):
         layout.addWidget(inp)
         return {"container": container, "input": inp}
 
+    @staticmethod
+    def _format_rut(raw: str) -> str:
+        cleaned = "".join(c for c in raw.upper() if c.isdigit() or c == "K")
+        if len(cleaned) <= 1:
+            return cleaned
+        body, dv = cleaned[:-1], cleaned[-1]
+        grouped = ""
+        for i, c in enumerate(reversed(body)):
+            if i > 0 and i % 3 == 0:
+                grouped = "." + grouped
+            grouped = c + grouped
+        return f"{grouped}-{dv}"
+
     def _on_rut_edited(self, text: str) -> None:
-        rut = text.strip()
+        formatted = self._format_rut(text)
+        if formatted != text:
+            self._rut_input.blockSignals(True)
+            self._rut_input.setText(formatted)
+            self._rut_input.setCursorPosition(len(formatted))
+            self._rut_input.blockSignals(False)
+        rut = formatted.strip()
         if len(rut) < 3:
             self._set_badge(None)
             return

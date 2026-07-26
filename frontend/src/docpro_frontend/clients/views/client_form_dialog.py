@@ -91,11 +91,15 @@ class ClientFormDialog(QDialog):
         self._name  = self._field("Nombre / Razón social *", "Empresa Ejemplo SpA",                  value=d.get("name", ""))
         self._addr  = self._field("Dirección",               "Calle, número, ciudad",                value=d.get("address") or "")
         self._email = self._field("Correo electrónico",      "correo@empresa.cl",                    value=d.get("email") or "")
-        self._phone = self._field("Teléfono",                "+56 9 1234 5678",                      value=d.get("phone") or "")
+        self._phone = self._field("Teléfono",                "+56 9 1234 5678",                      value=d.get("phone") or ("" if is_edit else "+56 9 "))
 
         for field in (self._rut, self._name, self._addr, self._email, self._phone):
             root.addWidget(field["container"])
             root.addSpacing(12)
+
+        if not is_edit:
+            self._rut["input"].setMaxLength(12)
+            self._rut["input"].textEdited.connect(self._on_rut_edited)
 
         root.addSpacing(8)
         sep = QFrame()
@@ -161,6 +165,28 @@ class ClientFormDialog(QDialog):
             return
         self.saved.emit(self.get_data())
         self.accept()
+
+    @staticmethod
+    def _format_rut(raw: str) -> str:
+        cleaned = "".join(c for c in raw.upper() if c.isdigit() or c == "K")
+        if len(cleaned) <= 1:
+            return cleaned
+        body, dv = cleaned[:-1], cleaned[-1]
+        grouped = ""
+        for i, c in enumerate(reversed(body)):
+            if i > 0 and i % 3 == 0:
+                grouped = "." + grouped
+            grouped = c + grouped
+        return f"{grouped}-{dv}"
+
+    def _on_rut_edited(self, text: str) -> None:
+        formatted = self._format_rut(text)
+        if formatted != text:
+            inp = self._rut["input"]
+            inp.blockSignals(True)
+            inp.setText(formatted)
+            inp.setCursorPosition(len(formatted))
+            inp.blockSignals(False)
 
     @staticmethod
     def _field(

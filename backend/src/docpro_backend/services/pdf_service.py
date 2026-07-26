@@ -11,6 +11,14 @@ from weasyprint import HTML
 from docpro_backend.dtos.config import CompanyProfileReadModel
 from docpro_backend.dtos.quotes import QuoteReadModel
 from docpro_backend.dtos.reports import ReportReadModel, ReportSectionReadModel
+from docpro_backend.services.theme_service import DEFAULT_THEME, build_font_face_css
+
+
+def _with_font_face(theme: dict | None) -> dict:
+    t = dict(theme or DEFAULT_THEME)
+    if not t.get("font_face_css"):
+        t["font_face_css"] = build_font_face_css(t.get("font_family", ""))
+    return t
 
 
 def _build_env() -> Environment:
@@ -29,10 +37,17 @@ def render_quote_pdf(
     quote: QuoteReadModel,
     company: CompanyProfileReadModel | None,
     output_path: Path,
+    theme: dict | None = None,
+    header_imagen: str | None = None,
 ) -> Path:
     env = _build_env()
     template = env.get_template("quote.html.j2")
-    html_str = template.render(quote=quote, company=company)
+    html_str = template.render(
+        quote=quote,
+        company=company,
+        theme=_with_font_face(theme),
+        header_imagen=header_imagen,
+    )
     HTML(string=html_str).write_pdf(str(output_path))
     return output_path
 
@@ -51,17 +66,23 @@ def render_report_pdf(
     firma_cargo: str | None,
     firma_imagen: str | None,
     output_path: Path,
+    theme: dict | None = None,
+    header_imagen: str | None = None,
 ) -> Path:
     env = _build_env()
     template = env.get_template("report.html.j2")
-    sections_tree = _build_sections_tree(report.sections)
+    observations, tree_sections = _split_observations(report.sections)
+    sections_tree = _build_sections_tree(tree_sections)
     html_str = template.render(
         report=report,
         company=company,
         sections_tree=sections_tree,
+        observations=observations,
         firma_nombre=firma_nombre,
         firma_cargo=firma_cargo,
         firma_imagen=firma_imagen,
+        theme=_with_font_face(theme),
+        header_imagen=header_imagen,
     )
     HTML(string=html_str).write_pdf(str(output_path))
     return output_path
@@ -74,7 +95,24 @@ def report_pdf_filename(report: ReportReadModel) -> str:
     return f"{report.number}_{safe_client}.pdf"
 
 
-def _build_sections_tree(sections: tuple[ReportSectionReadModel, ...]) -> list[dict]:
+def _split_observations(sections):
+    """Extract the observations context section, if any; return (text_or_none, remaining_sections)."""
+    observations: str | None = None
+    remaining = []
+    for s in sections:
+        if s.parent_id is None and s.content_json and not s.content:
+            try:
+                parsed = json.loads(s.content_json)
+            except (ValueError, TypeError):
+                parsed = None
+            if isinstance(parsed, dict) and parsed.get("_kind") == "observations":
+                observations = parsed.get("text", "")
+                continue
+        remaining.append(s)
+    return observations, remaining
+
+
+def _build_sections_tree(sections) -> list[dict]:
     nodes: dict[int, dict] = {}
     for s in sections:
         nodes[s.id] = {

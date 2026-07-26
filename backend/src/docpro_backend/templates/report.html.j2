@@ -4,29 +4,40 @@
 <meta charset="UTF-8">
 <title>{{ report.number }}</title>
 <style>
+  {{ theme.font_face_css | safe }}
+
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    font-family: Arial, Helvetica, 'DejaVu Sans', sans-serif;
+    font-family: {{ theme.font_family | safe }};
     font-size: 11px;
-    color: #1a1a1a;
+    color: {{ theme.text }};
   }
 
   .page { /* dimensiones y márgenes gestionados por @page */ }
 
+  /* ── Header image ── */
+  .header-img {
+    display: block;
+    margin: 0 0 12px 0;
+    max-height: 2.5cm;
+    object-fit: contain;
+    object-position: left;
+  }
+
   /* ── Título ── */
   .doc-type {
-    font-family: 'Times New Roman', Times, Georgia, serif;
+    font-family: {{ theme.font_family | safe }};
     font-size: 22px;
     font-weight: 700;
     letter-spacing: 1px;
-    color: #1D4ED8;
+    color: {{ theme.primary }};
     text-transform: uppercase;
     margin-bottom: 3px;
   }
 
   .doc-number {
-    font-family: 'Times New Roman', Times, Georgia, serif;
+    font-family: {{ theme.font_family | safe }};
     font-size: 13px;
     font-weight: 400;
     color: #444;
@@ -34,7 +45,7 @@
 
   .title-divider {
     border: none;
-    border-top: 2.5px solid #1D4ED8;
+    border-top: 2.5px solid {{ theme.primary }};
     margin: 10px 0 14px;
   }
 
@@ -44,7 +55,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.4px;
-    color: #111;
+    color: {{ theme.primary }};
     margin-bottom: 6px;
   }
 
@@ -97,12 +108,12 @@
 
   /* ── Caja de contexto (content_json) ── */
   .context-box {
-    border: 1px solid #93C5FD;
+    border: 1px solid {{ theme.primary }};
     margin-bottom: 18px;
   }
 
   .context-title {
-    background: #1D4ED8;
+    background: {{ theme.primary }};
     color: #fff;
     font-size: 10.5px;
     font-weight: 700;
@@ -122,19 +133,19 @@
     gap: 6px;
     padding: 3px 0;
     font-size: 10.5px;
-    border-bottom: 0.5px solid #e8f0fe;
+    border-bottom: 0.5px solid #e8e8e8;
   }
 
   .context-row:nth-last-child(-n+2) { border-bottom: none; }
 
   .context-key {
     font-weight: 700;
-    color: #1D4ED8;
+    color: {{ theme.primary }};
     white-space: nowrap;
     min-width: 90px;
   }
 
-  .context-val { color: #111; }
+  .context-val { color: {{ theme.text }}; }
 
   /* ── Secciones numeradas ── */
   .report-section { margin-bottom: 18px; }
@@ -143,16 +154,16 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    background: #f0f4ff;
-    border-left: 4px solid #1D4ED8;
+    background: {{ theme.accent }};
+    border-left: 4px solid {{ theme.primary }};
     padding: 6px 10px;
     font-size: 11.5px;
     font-weight: 700;
-    color: #111;
+    color: {{ theme.primary }};
     margin-bottom: 8px;
   }
 
-  .section-num { color: #1D4ED8; white-space: nowrap; }
+  .section-num { color: {{ theme.primary }}; white-space: nowrap; }
 
   .subsection { margin-top: 10px; margin-left: 12px; }
 
@@ -160,12 +171,12 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    border-left: 3px solid #93C5FD;
+    border-left: 3px solid {{ theme.primary }};
     padding: 4px 8px;
     font-size: 11px;
     font-weight: 700;
-    color: #1e3a8a;
-    background: #f8faff;
+    color: {{ theme.primary }};
+    background: {{ theme.accent }};
     margin-bottom: 6px;
   }
 
@@ -186,7 +197,7 @@
   }
 
   .item-num {
-    color: #1D4ED8;
+    color: {{ theme.primary }};
     font-weight: 700;
     white-space: nowrap;
     min-width: 16px;
@@ -198,6 +209,20 @@
     line-height: 1.7;
     padding-left: 16px;
     white-space: pre-wrap;
+  }
+
+  /* ── Observaciones ── */
+  .obs-section { margin-top: 18px; margin-bottom: 6px; }
+
+  .obs-title {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: {{ theme.primary }};
+    margin-bottom: 6px;
+    border-bottom: 1px solid #bbb;
+    padding-bottom: 4px;
   }
 
   /* ── Firma ── */
@@ -229,11 +254,24 @@
     margin-top: 2px;
   }
 
-  @page { size: A4; margin: 20mm 18mm 25mm 18mm; }
+  @page {
+    size: A4;
+    margin: 20mm 18mm 25mm 18mm;
+    @bottom-center {
+      content: counter(page) " de " counter(pages);
+      font-family: {{ theme.font_family | safe }};
+      font-size: 9px;
+      color: #666;
+    }
+  }
 </style>
 </head>
 <body>
 <div class="page">
+
+  {% if header_imagen %}
+  <img class="header-img" src="{{ header_imagen }}" alt="">
+  {% endif %}
 
   <!-- TÍTULO -->
   <p class="doc-type">Informe Técnico</p>
@@ -368,6 +406,21 @@
     </div>
     {% endif %}
   {% endfor %}
+
+  <!-- OBSERVACIONES -->
+  {% if observations is not none %}
+  <div class="obs-section">
+    <p class="obs-title">Observaciones</p>
+    {% set obs_lines = observations | content_lines %}
+    {% if obs_lines %}
+    <ul class="item-list">
+      {% for line in obs_lines %}
+      <li><span class="item-num">{{ loop.index }}.</span><span>{{ line }}</span></li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+  {% endif %}
 
   <!-- FIRMA -->
   {% if firma_nombre or firma_imagen %}

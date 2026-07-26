@@ -30,7 +30,7 @@ class QuoteWidget(QWidget):
         root.addWidget(self._header)
 
         self._splitter = QSplitter(Qt.Orientation.Horizontal)
-        self._splitter.setHandleWidth(4)
+        self._splitter.setHandleWidth(12)
         self._splitter.setStyleSheet("""
             QSplitter::handle {
                 background: #E5E7EB;

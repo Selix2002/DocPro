@@ -9,6 +9,7 @@ from docpro_frontend.settings.views.appearance_form import AppearanceForm
 from docpro_frontend.settings.views.gmail_form import GmailForm
 from docpro_frontend.settings.views.groq_form import GroqForm
 from docpro_frontend.settings.views.backup_form import BackupForm
+from docpro_frontend.settings.views.template_page import TemplatePage
 
 
 # Single source of truth for section metadata, shared with SidebarWidget
@@ -34,6 +35,13 @@ SECTION_META: dict[str, dict] = {
         "page_sub": "Elige entre modo claro, oscuro o seguir la configuración de Windows.",
         "status_text": "", "status_state": "",
     },
+    "vista_previa": {
+        "icon": "🎨", "color": "purple",
+        "name": "Vista previa",
+        "subtitle": "Colores, fuente e imagen de encabezado de los documentos emitidos",
+        "page_sub": "Estos cambios afectan a las cotizaciones e informes generados por este perfil.",
+        "status_text": "", "status_state": "",
+    },
     "gmail": {
         "icon": "@", "color": "green",
         "name": "Gmail",
@@ -57,7 +65,7 @@ SECTION_META: dict[str, dict] = {
     },
 }
 
-_ORDER = ["perfil", "numeracion", "apariencia", "gmail", "groq", "backup"]
+_ORDER = ["perfil", "numeracion", "apariencia", "vista_previa", "gmail", "groq", "backup"]
 
 
 class ContentArea(QWidget):
@@ -111,17 +119,19 @@ class ContentArea(QWidget):
         self._company    = CompanyProfileForm()
         self._numbering  = NumberingForm()
         self._appearance = AppearanceForm()
+        self._template   = TemplatePage()
         self._gmail      = GmailForm()
         self._groq       = GroqForm()
         self._backup     = BackupForm()
 
         _forms: dict[str, QWidget] = {
-            "perfil":     self._company,
-            "numeracion": self._numbering,
-            "apariencia": self._appearance,
-            "gmail":      self._gmail,
-            "groq":       self._groq,
-            "backup":     self._backup,
+            "perfil":       self._company,
+            "numeracion":   self._numbering,
+            "apariencia":   self._appearance,
+            "vista_previa": self._template,
+            "gmail":        self._gmail,
+            "groq":         self._groq,
+            "backup":       self._backup,
         }
 
         self._cards: dict[str, CardSection] = {}
@@ -174,6 +184,10 @@ class ContentArea(QWidget):
     @property
     def appearance_form(self) -> AppearanceForm:
         return self._appearance
+
+    @property
+    def template_page(self) -> TemplatePage:
+        return self._template
 
     @property
     def gmail_form(self) -> GmailForm:

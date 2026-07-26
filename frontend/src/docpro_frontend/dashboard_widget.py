@@ -43,6 +43,9 @@ class DashboardWidget(QWidget):
     create_report_requested = Signal()
     draft_opened            = Signal(int, str)  # doc_id, doc_type
     new_client_requested    = Signal()
+    switch_profile_requested = Signal(str)
+    new_profile_requested   = Signal()
+    rename_profile_requested = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -71,6 +74,9 @@ class DashboardWidget(QWidget):
         self._header.import_pdf_requested.connect(self.import_pdf_requested)
         self._header.settings_requested.connect(self.settings_requested)
         self._header.search_changed.connect(self.search_changed)
+        self._header.switch_profile_requested.connect(self.switch_profile_requested)
+        self._header.new_profile_requested.connect(self.new_profile_requested)
+        self._header.rename_profile_requested.connect(self.rename_profile_requested)
 
         # ── Body signals ──────────────────────────────────────────────────
         self._body.document_opened.connect(self.document_opened)
@@ -127,6 +133,10 @@ class DashboardWidget(QWidget):
 
     def refresh(self) -> None:
         self._service.load()
+
+    @property
+    def profile_chip(self):
+        return self._header.profile_chip
 
     # ── Lifecycle ─────────────────────────────────────────────────────────
 

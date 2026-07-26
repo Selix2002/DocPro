@@ -5,9 +5,16 @@ from pathlib import Path
 
 from PySide6.QtWidgets import QApplication, QMainWindow, QStackedWidget
 
-from docpro_backend.db.engine import get_db_path
+from docpro_backend.db.profile_context import ProfileContext
 from docpro_frontend.dashboard_widget import DashboardWidget
+from docpro_frontend.header.dialogs.profile_dialogs import (
+    prompt_new_profile,
+    prompt_rename_profile,
+    show_error as show_profile_error,
+)
+from docpro_frontend.services import profile_service
 from docpro_frontend.services.gmail_service import GmailService
+from docpro_frontend.services.profile_bootstrap import bootstrap_profiles, run_migrations
 from docpro_frontend.services.settings_service import SettingsService
 from docpro_frontend.services.quote_service import QuoteService
 from docpro_frontend.services.report_service import ReportService
@@ -76,25 +83,7 @@ def _setup_logging() -> None:
 def _run_migrations() -> None:
     """Apply pending Alembic migrations at startup — safe to call on every launch."""
     try:
-        from alembic import command as alembic_command
-        from alembic.config import Config
-        from docpro_backend.db.engine import get_db_path
-
-        if getattr(sys, "frozen", False):
-            # In the frozen bundle: alembic.ini and alembic/ land at sys._MEIPASS
-            meipass = Path(sys._MEIPASS)  # type: ignore[attr-defined]
-            ini_path = meipass / "alembic.ini"
-            script_loc = str(meipass / "alembic")
-        else:
-            # Dev layout: backend/alembic.ini, backend/alembic/
-            repo_root = Path(__file__).resolve().parents[3]
-            ini_path = repo_root / "backend" / "alembic.ini"
-            script_loc = str(ini_path.parent / "alembic")
-
-        cfg = Config(str(ini_path))
-        cfg.set_main_option("script_location", script_loc)
-        cfg.set_main_option("sqlalchemy.url", f"sqlite:///{get_db_path()}")
-        alembic_command.upgrade(cfg, "head")
+        run_migrations()
     except Exception:
         logging.getLogger(__name__).exception("Alembic migration failed")
         raise
@@ -109,15 +98,20 @@ def main() -> None:
         # parent process blocks here monitoring for file changes;
         # worker process returns immediately and falls through below
 
+    bootstrap_profiles()
     _run_migrations()
-
-    DB_PATH = get_db_path()
 
     app = QApplication(sys.argv)
     app.setStyleSheet(_GLOBAL_STYLE)
 
     window = QMainWindow()
-    window.setWindowTitle("DocPro")
+    ctx = ProfileContext.get()
+
+    def _refresh_title() -> None:
+        window.setWindowTitle(f"DocPro — {ctx.active_name()}")
+
+    _refresh_title()
+    ctx.add_listener(_refresh_title)
     window.resize(1280, 800)
     window.setMinimumSize(960, 600)
 
@@ -135,7 +129,7 @@ def main() -> None:
     window.setCentralWidget(stack)
 
     gmail_svc    = GmailService()
-    settings_svc = SettingsService(settings, DB_PATH)
+    settings_svc = SettingsService(settings)
     settings_svc.load_all()
 
     quote_svc  = QuoteService(quote_wgt, gmail_svc)
@@ -218,6 +212,59 @@ def main() -> None:
 
     quote_svc.navigation_back.connect(go_to_dashboard)
     report_svc.navigation_back.connect(go_to_dashboard)
+
+    # ── Profile management ────────────────────────────────────────────
+    def _refresh_profile_chip() -> None:
+        dashboard.profile_chip.set_profiles(
+            profile_service.list_profiles(),
+            profile_service.active_slug(),
+        )
+
+    def _reload_after_switch() -> None:
+        settings_svc.load_all()
+        dashboard.refresh()
+        stack.setCurrentWidget(dashboard)
+
+    def _on_switch_profile(slug: str) -> None:
+        if slug == profile_service.active_slug():
+            return
+        try:
+            profile_service.switch_to(slug)
+        except Exception as exc:
+            logging.getLogger(__name__).exception("Switch profile failed")
+            show_profile_error(window, f"No se pudo cambiar de perfil: {exc}")
+            return
+        _reload_after_switch()
+
+    def _on_new_profile() -> None:
+        name = prompt_new_profile(window)
+        if not name:
+            return
+        try:
+            profile_service.create_and_activate(name)
+        except Exception as exc:
+            logging.getLogger(__name__).exception("Create profile failed")
+            show_profile_error(window, f"No se pudo crear el perfil: {exc}")
+            return
+        _reload_after_switch()
+
+    def _on_rename_profile() -> None:
+        current_slug = profile_service.active_slug()
+        current_name = profile_service.active_name()
+        new_name = prompt_rename_profile(window, current_name)
+        if not new_name:
+            return
+        try:
+            profile_service.rename(current_slug, new_name)
+        except Exception as exc:
+            logging.getLogger(__name__).exception("Rename profile failed")
+            show_profile_error(window, f"No se pudo renombrar: {exc}")
+
+    dashboard.switch_profile_requested.connect(_on_switch_profile)
+    dashboard.new_profile_requested.connect(_on_new_profile)
+    dashboard.rename_profile_requested.connect(_on_rename_profile)
+    ctx.add_listener(_refresh_profile_chip)
+    _refresh_profile_chip()
 
     window.show()
     sys.exit(app.exec())

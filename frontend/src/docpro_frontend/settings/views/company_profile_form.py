@@ -1,4 +1,3 @@
-import shutil
 from pathlib import Path
 
 from PySide6.QtCore import Qt
@@ -14,10 +13,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from docpro_frontend.services import asset_service
 from docpro_frontend.settings.styles import settings_styles as S
 
-_DOCPRO_DIR = Path.home() / ".docpro"
-_FIRMA_IMG  = _DOCPRO_DIR / "firma_imagen.png"
+_FIRMA_FILENAME = "firma_imagen.png"
 _THUMB_W, _THUMB_H = 160, 80
 
 
@@ -65,6 +64,7 @@ class CompanyProfileForm(QWidget):
         layout.addLayout(firma_grid)
 
         # ── Imagen de firma ───────────────────────────────────────────
+        # Stores just the filename (resolved to abs path via asset_service).
         self._firma_imagen_path: str = ""
 
         img_label = QLabel("IMAGEN DE FIRMA")
@@ -143,13 +143,11 @@ class CompanyProfileForm(QWidget):
         )
         if not path:
             return
-        _DOCPRO_DIR.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(path, _FIRMA_IMG)
-        self._set_thumbnail(str(_FIRMA_IMG))
+        filename = asset_service.store(Path(path), _FIRMA_FILENAME)
+        self._set_thumbnail(filename)
 
     def _on_remove_imagen(self) -> None:
-        if _FIRMA_IMG.exists():
-            _FIRMA_IMG.unlink()
+        asset_service.remove(_FIRMA_FILENAME)
         self._firma_imagen_path = ""
         self._firma_thumbnail.setPixmap(QPixmap())
         self._firma_thumbnail.setText("Sin imagen")
@@ -157,16 +155,21 @@ class CompanyProfileForm(QWidget):
 
     # ── Internal ──────────────────────────────────────────────────────
 
-    def _set_thumbnail(self, path: str) -> None:
-        if path and Path(path).exists():
-            px = QPixmap(path).scaled(
+    def _set_thumbnail(self, filename: str) -> None:
+        # Accept either a bare filename (new) or absolute legacy path (fallback).
+        abs_path = asset_service.resolve(filename) if filename else None
+        if abs_path is None and filename and Path(filename).exists():
+            abs_path = Path(filename)
+            filename = abs_path.name
+        if abs_path is not None:
+            px = QPixmap(str(abs_path)).scaled(
                 _THUMB_W, _THUMB_H,
                 Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.SmoothTransformation,
             )
             self._firma_thumbnail.setText("")
             self._firma_thumbnail.setPixmap(px)
-            self._firma_imagen_path = path
+            self._firma_imagen_path = filename
             self._btn_remove.setVisible(True)
         else:
             self._firma_imagen_path = ""

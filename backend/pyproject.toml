@@ -23,9 +23,23 @@ dependencies = [
 [project.scripts]
 backend = "docpro_backend:main"
 
+[dependency-groups]
+test = [
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "freezegun>=1.5",
+]
+
 [tool.uv_build]
 module-name = "docpro_backend"
 
 [build-system]
 requires = ["uv_build>=0.8.2,<0.9.0"]
 build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+    "integration: touches the DB or Alembic (slower than unit)",
+]

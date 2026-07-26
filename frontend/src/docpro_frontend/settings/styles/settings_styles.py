@@ -258,6 +258,19 @@ QComboBox::drop-down {{
     border: none;
     width: 24px;
 }}
+QComboBox QAbstractItemView {{
+    background: {t['surface']};
+    color: {t['text']};
+    border: 1px solid {t['border']};
+    selection-background-color: {t['amber_light']};
+    selection-color: {t['amber']};
+    outline: 0;
+    padding: 4px 0;
+}}
+QComboBox QAbstractItemView::item {{
+    padding: 6px 12px;
+    min-height: 22px;
+}}
 """
 
 

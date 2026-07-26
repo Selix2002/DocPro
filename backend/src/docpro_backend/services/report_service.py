@@ -94,15 +94,28 @@ def get_firma(session: Session) -> tuple[str | None, str | None, str | None]:
         if profile and profile.name:
             nombre = profile.name
     imagen_b64: str | None = None
-    imagen_path_str = repo.get_or_none("firma.imagen") or ""
-    if imagen_path_str:
-        img_path = Path(imagen_path_str)
-        if img_path.exists():
+    stored = repo.get_or_none("firma.imagen") or ""
+    if stored:
+        img_path = _resolve_firma_path(stored)
+        if img_path is not None and img_path.exists():
             data = img_path.read_bytes()
             suffix = img_path.suffix.lower().lstrip(".")
             mime = "jpeg" if suffix in ("jpg", "jpeg") else suffix or "png"
             imagen_b64 = f"data:image/{mime};base64,{base64.b64encode(data).decode()}"
     return nombre, cargo, imagen_b64
+
+
+def _resolve_firma_path(stored: str) -> Path | None:
+    """Resolve a stored firma value (filename in active profile, or legacy abs path)."""
+    from docpro_backend.db.profile_context import ProfileContext
+
+    p = Path(stored)
+    if p.is_absolute():
+        return p
+    ctx = ProfileContext.get()
+    if ctx.is_initialized():
+        return ctx.assets_dir() / stored
+    return None
 
 
 def _save_snapshot(session: Session, report: ReportReadModel) -> None:

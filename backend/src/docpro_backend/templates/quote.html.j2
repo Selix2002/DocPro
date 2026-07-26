@@ -4,29 +4,40 @@
 <meta charset="UTF-8">
 <title>{{ quote.number }}</title>
 <style>
+  {{ theme.font_face_css | safe }}
+
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    font-family: Arial, Helvetica, 'DejaVu Sans', sans-serif;
+    font-family: {{ theme.font_family | safe }};
     font-size: 11px;
-    color: #1a1a1a;
+    color: {{ theme.text }};
   }
 
   .page { /* dimensiones y márgenes gestionados por @page */ }
 
+  /* ── Header image ── */
+  .header-img {
+    display: block;
+    margin: 0 0 12px 0;
+    max-height: 2.5cm;
+    object-fit: contain;
+    object-position: left;
+  }
+
   /* ── Título ── */
   .doc-title {
-    font-family: 'Times New Roman', Times, Georgia, serif;
+    font-family: {{ theme.font_family | safe }};
     font-size: 26px;
     font-weight: 700;
     letter-spacing: -0.5px;
-    color: #111111;
+    color: {{ theme.primary }};
     margin-bottom: 2px;
   }
 
   .title-divider {
     border: none;
-    border-top: 2.5px solid #111111;
+    border-top: 2.5px solid {{ theme.primary }};
     margin: 10px 0 14px;
   }
 
@@ -36,7 +47,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.4px;
-    color: #111;
+    color: {{ theme.primary }};
     margin-bottom: 6px;
   }
 
@@ -95,7 +106,7 @@
     margin-bottom: 4px;
   }
 
-  .items-table thead tr { background: #e2e2e2; }
+  .items-table thead tr { background: {{ theme.accent }}; }
 
   .items-table thead th {
     padding: 6px 8px;
@@ -106,7 +117,7 @@
     letter-spacing: 0.2px;
     border-top: 1.5px solid #888;
     border-bottom: 1.5px solid #888;
-    color: #111;
+    color: {{ theme.primary }};
   }
 
   .items-table thead th.right { text-align: right; }
@@ -147,7 +158,7 @@
   .total-row:last-child {
     border-bottom: none;
     font-weight: 700;
-    background: #ebebeb;
+    background: {{ theme.accent }};
     font-size: 12px;
   }
 
@@ -162,27 +173,52 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.3px;
-    color: #111;
+    color: {{ theme.primary }};
     margin-bottom: 6px;
     border-bottom: 1px solid #bbb;
     padding-bottom: 4px;
   }
 
-  .obs-text {
-    font-size: 10.5px;
-    color: #444;
-    line-height: 1.7;
-    border: 0.5px solid #ccc;
-    padding: 9px 11px;
-    min-height: 48px;
-    white-space: pre-wrap;
+  .obs-list {
+    list-style: none;
+    padding: 2px 0 0 16px;
+    margin: 0;
   }
 
-  @page { size: A4; margin: 20mm 18mm 25mm 18mm; }
+  .obs-list li {
+    display: flex;
+    gap: 6px;
+    font-size: 10.5px;
+    color: #222;
+    padding: 2px 0;
+    line-height: 1.5;
+  }
+
+  .obs-num {
+    color: {{ theme.primary }};
+    font-weight: 700;
+    white-space: nowrap;
+    min-width: 16px;
+  }
+
+  @page {
+    size: A4;
+    margin: 20mm 18mm 25mm 18mm;
+    @bottom-center {
+      content: counter(page) " de " counter(pages);
+      font-family: {{ theme.font_family | safe }};
+      font-size: 9px;
+      color: #666;
+    }
+  }
 </style>
 </head>
 <body>
 <div class="page">
+
+  {% if header_imagen %}
+  <img class="header-img" src="{{ header_imagen }}" alt="">
+  {% endif %}
 
   <!-- TÍTULO -->
   <p class="doc-title">COTIZACIÓN N°: {{ quote.number | replace("COT-", "") }}</p>
@@ -307,7 +343,14 @@
   {% if quote.observations %}
   <div class="obs-section">
     <p class="obs-title">Observaciones</p>
-    <div class="obs-text">{{ quote.observations }}</div>
+    {% set obs_lines = quote.observations | content_lines %}
+    {% if obs_lines %}
+    <ul class="obs-list">
+      {% for line in obs_lines %}
+      <li><span class="obs-num">{{ loop.index }}.</span><span>{{ line }}</span></li>
+      {% endfor %}
+    </ul>
+    {% endif %}
   </div>
   {% endif %}
 

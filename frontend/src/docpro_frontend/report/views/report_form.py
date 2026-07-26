@@ -101,7 +101,7 @@ class ReportForm(QWidget):
             "title":        None,  # collected by service from ReportHeader
             "trabajo":      self._trabajo.get_data(),
             "sections":     self._sections_list.get_data(),
-            "observations": self._obs.toPlainText().strip() if self._obs_is_active else None,
+            "observations": self._obs.toPlainText() if self._obs_is_active else None,
         }
 
     def set_data(self, rm) -> None:
@@ -117,10 +117,15 @@ class ReportForm(QWidget):
             phone=rm.client_phone,
         )
 
-        sections_data, trabajo_from_db = _sections_from_read_model(rm.sections)
+        sections_data, trabajo_from_db, observations_from_db = _sections_from_read_model(rm.sections)
         if trabajo_from_db:
             self._trabajo.set_data(trabajo_from_db)
         self._sections_list.set_data(sections_data)
+        if observations_from_db is not None:
+            self._obs_inactive_widget.setVisible(False)
+            self._obs_active_frame.setVisible(True)
+            self._obs_is_active = True
+            self._obs.setPlainText(observations_from_db)
 
     def set_number(self, number: str) -> None:
         self._meta_row.set_number(number)
@@ -240,33 +245,39 @@ class ReportForm(QWidget):
 _TRABAJO_FIXED_KEYS = {"local", "fecha", "tipo_equipo"}
 
 
-def _sections_from_read_model(sections) -> tuple[list[dict], dict | None]:
-    """Reconstruct hierarchical section dicts, separating the 'Trabajo efectuado' context section.
+def _sections_from_read_model(sections) -> tuple[list[dict], dict | None, str | None]:
+    """Reconstruct hierarchical section dicts, separating context sections.
 
-    Returns (regular_sections, trabajo_data_or_None).
+    Returns (regular_sections, trabajo_data_or_None, observations_text_or_None).
     """
     import json as _json
 
     trabajo_data: dict | None = None
+    observations: str | None = None
     context_ids: set[int] = set()
 
     for s in sections:
         if s.parent_id is None and s.content_json and not s.content:
-            context_ids.add(s.id)
             try:
-                ctx = _json.loads(s.content_json)
-                trabajo_data = {
-                    "local":          ctx.get("local", ""),
-                    "fecha":          ctx.get("fecha", ""),
-                    "equipment_type": ctx.get("tipo_equipo", ""),
-                    "extra_fields": [
-                        {"label": k.replace("_", " ").capitalize(), "value": v}
-                        for k, v in ctx.items()
-                        if k not in _TRABAJO_FIXED_KEYS
-                    ],
-                }
-            except (ValueError, KeyError):
-                pass
+                parsed = _json.loads(s.content_json)
+            except ValueError:
+                continue
+            if not isinstance(parsed, dict):
+                continue
+            context_ids.add(s.id)
+            if parsed.get("_kind") == "observations":
+                observations = parsed.get("text", "")
+                continue
+            trabajo_data = {
+                "local":          parsed.get("local", ""),
+                "fecha":          parsed.get("fecha", ""),
+                "equipment_type": parsed.get("tipo_equipo", ""),
+                "extra_fields": [
+                    {"label": k.replace("_", " ").capitalize(), "value": v}
+                    for k, v in parsed.items()
+                    if k not in _TRABAJO_FIXED_KEYS
+                ],
+            }
 
     root = sorted(
         [s for s in sections if s.parent_id is None and s.id not in context_ids],
@@ -289,4 +300,4 @@ def _sections_from_read_model(sections) -> tuple[list[dict], dict | None]:
                 for s in children
             ],
         })
-    return result, trabajo_data
+    return result, trabajo_data, observations

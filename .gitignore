@@ -6,6 +6,7 @@ docpro-schema-workbench.sql
 **/__pycache__/**
 *.db
 .venv/
+.docpro/
 backend/tmp/
 *.html
 !privacy-policy.html
@@ -22,3 +23,5 @@ credentials.json
 *.apps.googleusercontent.com.json
 *.enc
 secret.key
+/docpro-site
+/web
