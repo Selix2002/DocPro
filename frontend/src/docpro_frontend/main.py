@@ -21,6 +21,7 @@ from docpro_frontend.services.report_service import ReportService
 from docpro_frontend.settings.views.settings_widget import SettingsWidget
 from docpro_frontend.quote.views.quote_widget import QuoteWidget
 from docpro_frontend.report.views.report_widget import ReportWidget
+from docpro_frontend.zoom_view import ZoomableView
 
 _GLOBAL_STYLE = """
 * {
@@ -126,7 +127,7 @@ def main() -> None:
     stack.addWidget(quote_wgt)
     stack.addWidget(report_wgt)
     stack.setCurrentWidget(dashboard)
-    window.setCentralWidget(stack)
+    window.setCentralWidget(ZoomableView(stack))
 
     gmail_svc    = GmailService()
     settings_svc = SettingsService(settings)
