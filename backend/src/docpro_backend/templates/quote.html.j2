@@ -179,6 +179,15 @@
     padding-bottom: 4px;
   }
 
+  .obs-subsection { margin-bottom: 10px; }
+
+  .obs-sub-title {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 3px;
+  }
+
   .obs-list {
     list-style: none;
     padding: 2px 0 0 16px;
@@ -340,7 +349,36 @@
   </div>
 
   <!-- OBSERVACIONES -->
-  {% if quote.observations %}
+  {% macro render_obs(items, prefix="", depth=0) %}
+  {% for sub in items %}
+  {% set num = prefix ~ loop.index %}
+  {% set lines = (sub.content or "") | content_lines %}
+  {% set kids = sub.children | default([]) %}
+  {% if sub.title or lines or kids %}
+  <div style="margin-left: {{ depth * 18 }}px; margin-bottom: 6px;">
+    <p class="obs-sub-title">
+      <span class="obs-num">{{ num }}.</span>
+      {% if sub.title %} {{ sub.title }}{% endif %}
+    </p>
+    {% if lines %}
+    <ul class="obs-list" style="margin-top: 3px;">
+      {% for line in lines %}
+      <li><span>{{ line }}</span></li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% if kids %}{{ render_obs(kids, num ~ ".", depth + 1) }}{% endif %}
+  </div>
+  {% endif %}
+  {% endfor %}
+  {% endmacro %}
+
+  {% if quote.observations_json %}
+  <div class="obs-section">
+    <p class="obs-title">Observaciones</p>
+    {{ render_obs(quote.observations_json) }}
+  </div>
+  {% elif quote.observations %}
   <div class="obs-section">
     <p class="obs-title">Observaciones</p>
     {% set obs_lines = quote.observations | content_lines %}

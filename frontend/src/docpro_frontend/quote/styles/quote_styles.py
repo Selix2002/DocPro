@@ -554,6 +554,100 @@ def totals_total_value() -> str:
 
 # ── Observations ──────────────────────────────────────────────────────────────
 
+def obs_subsection_card() -> str:
+    t = _t()
+    return f"""
+QFrame#ObsSubsectionCard {{
+    background: {t['bg']};
+    border: 1px solid {t['border_soft']};
+    border-radius: 10px;
+}}
+"""
+
+
+def obs_subsection_title_input() -> str:
+    t = _t()
+    return f"""
+QLineEdit {{
+    border: 1px solid {t['border']};
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 14px; font-weight: 600;
+    color: {t['text']};
+    background: {t['surface']};
+}}
+QLineEdit:focus {{ border-color: {t['amber']}; }}
+QLineEdit:read-only {{
+    background: {t['border_soft']};
+    color: {t['muted']};
+    border-color: {t['border_soft']};
+}}
+"""
+
+
+def obs_subsection_del_btn() -> str:
+    t = _t()
+    return f"""
+QPushButton {{
+    background: transparent;
+    border: none;
+    border-radius: 7px;
+    font-size: 17px;
+    color: {t['placeholder']};
+    min-width: 30px; max-width: 30px;
+    min-height: 30px; max-height: 30px;
+}}
+QPushButton:hover {{ background: {t['red_light']}; color: {t['red']}; }}
+"""
+
+
+def obs_num_label() -> str:
+    t = _t()
+    return (
+        f"font-size: 14px; font-weight: 700; color: {t['amber_dark']}; "
+        f"background: transparent;"
+    )
+
+
+def obs_add_child_btn() -> str:
+    t = _t()
+    return f"""
+QPushButton {{
+    background: transparent;
+    border: 1px dashed {t['border']};
+    border-radius: 7px;
+    padding: 4px 12px;
+    font-size: 12px; font-weight: 500;
+    color: {t['muted']};
+    text-align: left;
+}}
+QPushButton:hover {{
+    background: {t['amber_light']};
+    border-color: {t['amber']};
+    color: {t['amber']};
+}}
+QPushButton:disabled {{ color: {t['placeholder']}; border-color: {t['border_soft']}; }}
+"""
+
+
+def obs_add_sub_btn() -> str:
+    t = _t()
+    return f"""
+QPushButton {{
+    background: transparent;
+    border: none;
+    border-top: 1px dashed {t['border']};
+    border-radius: 0px;
+    padding: 10px 20px;
+    font-size: 13px; font-weight: 500;
+    color: {t['amber']};
+    text-align: left;
+}}
+QPushButton:hover {{ background: {t['amber_light']}; }}
+QPushButton:disabled {{ color: {t['placeholder']}; border-color: {t['border_soft']}; }}
+"""
+
+
 def obs_textarea() -> str:
     t = _t()
     return f"""

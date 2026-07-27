@@ -16,11 +16,13 @@ def create_quote(session: Session, data: QuoteInput) -> QuoteReadModel:
     else:
         number = next_number(session, "quote")
     repo = QuoteRepository(session)
+    obs_json_str = json.dumps(data.observations_json, ensure_ascii=False) if data.observations_json else None
     doc, quote = repo.create(
         client_id=data.client_id,
         number=number,
         issue_date=data.issue_date,
         observations=data.observations,
+        observations_json=obs_json_str,
         show_iva=data.show_iva,
         items=[
             {
@@ -40,10 +42,12 @@ def create_quote(session: Session, data: QuoteInput) -> QuoteReadModel:
 
 def update_quote(session: Session, document_id: int, data: QuoteInput) -> QuoteReadModel:
     repo = QuoteRepository(session)
+    obs_json_str = json.dumps(data.observations_json, ensure_ascii=False) if data.observations_json else None
     repo.update(
         document_id=document_id,
         issue_date=data.issue_date,
         observations=data.observations,
+        observations_json=obs_json_str,
         show_iva=data.show_iva,
         items=[
             {
@@ -93,6 +97,7 @@ def duplicate_quote(session: Session, source_doc_id: int) -> QuoteReadModel:
         number="",
         issue_date=date.today().strftime("%Y-%m-%d"),
         observations=source.observations,
+        observations_json=source.observations_json,
         show_iva=source.show_iva,
         items=[
             QuoteItemInput(
@@ -131,6 +136,7 @@ def _save_snapshot(session: Session, quote: QuoteReadModel) -> None:
         "quote": {
             "issue_date": quote.issue_date,
             "observations": quote.observations,
+            "observations_json": quote.observations_json,
             "neto": quote.neto,
             "iva": quote.iva,
             "total": quote.total,

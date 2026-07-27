@@ -37,6 +37,7 @@ class QuoteRepository(BaseRepository[Quote]):
         number: str,
         issue_date: str,
         observations: str | None = None,
+        observations_json: str | None = None,
         show_iva: bool = True,
         items: list[dict] | None = None,
     ) -> tuple[Document, Quote]:
@@ -55,6 +56,7 @@ class QuoteRepository(BaseRepository[Quote]):
             document_id=doc.id,
             issue_date=issue_date,
             observations=observations,
+            observations_json=observations_json,
             show_iva=show_iva,
             neto=neto,
             iva=iva,
@@ -71,12 +73,14 @@ class QuoteRepository(BaseRepository[Quote]):
         document_id: int,
         issue_date: str,
         observations: str | None = None,
+        observations_json: str | None = None,
         show_iva: bool = True,
         items: list[dict] | None = None,
     ) -> tuple[Document, Quote]:
         doc, quote, _, _ = self.get_full(document_id)
         quote.issue_date = issue_date
         quote.observations = observations
+        quote.observations_json = observations_json
         quote.show_iva = show_iva
 
         self._session.query(QuoteItem).filter(

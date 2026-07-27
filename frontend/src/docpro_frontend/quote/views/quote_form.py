@@ -2,15 +2,15 @@ from datetime import date
 
 from PySide6.QtWidgets import (
     QWidget, QScrollArea, QVBoxLayout, QHBoxLayout, QLabel,
-    QDateEdit, QTextEdit, QFrame, QSizePolicy, QLineEdit, QCheckBox,
+    QDateEdit, QFrame, QSizePolicy, QLineEdit, QCheckBox, QPushButton,
 )
 from PySide6.QtCore import Signal, Qt, QDate, QThreadPool
 
 from docpro_frontend.quote.styles import quote_styles as S
 from docpro_frontend.quote.views.client_section import ClientSection
 from docpro_frontend.quote.views.items_table import ItemsTable
+from docpro_frontend.quote.views.obs_subsection_card import ObsSubsectionCard
 from docpro_frontend.services.worker import Worker
-from docpro_frontend.widgets.ai_improve_button import AiImproveButton
 
 
 class QuoteForm(QWidget):
@@ -81,7 +81,6 @@ class QuoteForm(QWidget):
         worker = Worker(_load_company)
         worker.signals.result.connect(self._on_company_loaded)
         QThreadPool.globalInstance().start(worker)
-        self._obs.textChanged.connect(self.field_changed)
         self._items_table.data_changed.connect(self.field_changed)
         self._client.client_data_changed.connect(self.field_changed)
         self._iva_toggle.toggled.connect(self._on_iva_toggled)
@@ -96,12 +95,14 @@ class QuoteForm(QWidget):
     # ── Public API ────────────────────────────────────────────────────────────
 
     def get_data(self) -> dict:
+        subs = [c.get_data() for c in self._obs_cards]
+        non_empty = [s for s in subs if _sub_has_content(s)] or None
         return {
-            "number":       self._number_input.text().strip(),
-            "issue_date":   self._issue_date.date().toString("yyyy-MM-dd"),
-            "observations": self._obs.toPlainText().strip() or None,
-            "show_iva":     self._iva_toggle.isChecked(),
-            "items":        self._items_table.get_data(),
+            "number":            self._number_input.text().strip(),
+            "issue_date":        self._issue_date.date().toString("yyyy-MM-dd"),
+            "observations_json": non_empty,
+            "show_iva":          self._iva_toggle.isChecked(),
+            "items":             self._items_table.get_data(),
         }
 
     def set_data(self, rm) -> None:
@@ -138,7 +139,16 @@ class QuoteForm(QWidget):
         self._iva_toggle.setChecked(getattr(rm, "show_iva", True))
 
         # Observations
-        self._obs.setPlainText(rm.observations or "")
+        self._clear_obs_cards()
+        if rm.observations_json:
+            for sub in rm.observations_json:
+                self._add_obs_card(
+                    title    = sub.get("title", ""),
+                    content  = sub.get("content", ""),
+                    children = sub.get("children"),
+                )
+        elif rm.observations:
+            self._add_obs_card(content=rm.observations)
 
     def set_number(self, number: str) -> None:
         self._number_input.setText(number)
@@ -150,11 +160,12 @@ class QuoteForm(QWidget):
     def set_readonly(self, readonly: bool) -> None:
         # _number_input editability is managed only by lock_number() and reset()
         self._issue_date.setEnabled(not readonly)
-        self._obs.setReadOnly(readonly)
         self._client.set_readonly(readonly)
         self._items_table.set_readonly(readonly)
-        self._ai_btn.setEnabled(not readonly)
         self._iva_toggle.setEnabled(not readonly)
+        for card in self._obs_cards:
+            card.set_readonly(readonly)
+        self._obs_add_btn.setVisible(not readonly)
 
     def reset(self) -> None:
         self._number_input.clear()
@@ -162,7 +173,7 @@ class QuoteForm(QWidget):
         self._issue_date.setDate(QDate.currentDate())
         self._client.reset()
         self._items_table.clear()
-        self._obs.clear()
+        self._clear_obs_cards()
         self._iva_toggle.setChecked(True)
 
     def get_client_data(self) -> dict:
@@ -307,14 +318,6 @@ class QuoteForm(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # Textarea created first so AiImproveButton can reference it
-        self._obs = QTextEdit()
-        self._obs.setPlaceholderText(
-            "Ingrese observaciones, condiciones de pago, garantías u otras notas relevantes…"
-        )
-        self._obs.setStyleSheet(S.obs_textarea())
-        self._obs.setMinimumHeight(100)
-
         # Section head
         head = QWidget()
         head.setObjectName("SectionHead")
@@ -328,24 +331,66 @@ class QuoteForm(QWidget):
         icon.setStyleSheet(S.section_head_icon())
         sec_label = QLabel("Observaciones")
         sec_label.setStyleSheet(S.section_head_label())
-
-        self._ai_btn = AiImproveButton(self._obs)
-
         h.addWidget(icon)
         h.addSpacing(8)
         h.addWidget(sec_label)
         h.addStretch()
-        h.addWidget(self._ai_btn)
         layout.addWidget(head)
 
-        # Body
+        # Cards container
         body = QWidget()
         body_layout = QVBoxLayout(body)
-        body_layout.setContentsMargins(20, 16, 20, 20)
-        body_layout.addWidget(self._obs)
+        body_layout.setContentsMargins(16, 12, 16, 0)
+        body_layout.setSpacing(8)
 
+        self._obs_cards: list[ObsSubsectionCard] = []
+        self._obs_body_layout = body_layout
         layout.addWidget(body)
+
+        # "Add subsection" button
+        self._obs_add_btn = QPushButton("＋  Añadir subsección")
+        self._obs_add_btn.setStyleSheet(S.obs_add_sub_btn())
+        self._obs_add_btn.clicked.connect(lambda: self._add_obs_card())
+        layout.addWidget(self._obs_add_btn)
+
         return block
+
+    # ── Observations helpers ──────────────────────────────────────────────────
+
+    def _add_obs_card(
+        self,
+        title: str = "",
+        content: str = "",
+        children: list | None = None,
+    ) -> None:
+        number = str(len(self._obs_cards) + 1)
+        card   = ObsSubsectionCard(number, depth=0, title=title, content=content)
+        card.data_changed.connect(self.field_changed)
+        card.delete_requested.connect(lambda: self._remove_obs_card(card))
+        if children:
+            card.load_children(children)
+        self._obs_body_layout.addWidget(card)
+        self._obs_cards.append(card)
+
+    def _remove_obs_card(self, card: ObsSubsectionCard) -> None:
+        self._obs_body_layout.removeWidget(card)
+        self._obs_cards.remove(card)
+        card.deleteLater()
+        for i, c in enumerate(self._obs_cards):
+            c.set_number(str(i + 1))
+        self.field_changed.emit()
+
+    def _clear_obs_cards(self) -> None:
+        for card in list(self._obs_cards):
+            self._obs_body_layout.removeWidget(card)
+            card.deleteLater()
+        self._obs_cards.clear()
+
+
+def _sub_has_content(sub: dict) -> bool:
+    if sub.get("title") or sub.get("content"):
+        return True
+    return any(_sub_has_content(c) for c in sub.get("children", []))
 
 
 def _load_company() -> dict:

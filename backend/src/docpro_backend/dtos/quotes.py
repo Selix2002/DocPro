@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 
 from docpro_backend.schema import Client, Document, Quote, QuoteItem
@@ -19,6 +20,7 @@ class QuoteInput:
     number: str
     issue_date: str
     observations: str | None = None
+    observations_json: list[dict] | None = None
     show_iva: bool = True
     items: list[QuoteItemInput] = field(default_factory=list)
 
@@ -51,6 +53,7 @@ class QuoteReadModel:
     status: str
     issue_date: str
     observations: str | None
+    observations_json: list[dict] | None
     show_iva: bool
     neto: float
     iva: float
@@ -81,6 +84,7 @@ class QuoteReadModel:
             status=doc.status,
             issue_date=quote.issue_date,
             observations=quote.observations,
+            observations_json=json.loads(quote.observations_json) if quote.observations_json else None,
             show_iva=quote.show_iva,
             neto=quote.neto,
             iva=quote.iva,

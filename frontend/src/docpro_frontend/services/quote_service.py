@@ -725,7 +725,7 @@ def _create_quote(client_id: int, data: dict):
             client_id=client_id,
             number=data.get("number", ""),
             issue_date=data["issue_date"],
-            observations=data.get("observations"),
+            observations_json=data.get("observations_json"),
             items=[
                 QuoteItemInput(
                     quantity=i["quantity"],
@@ -756,7 +756,7 @@ def _update_quote(doc_id: int, data: dict):
             client_id=0,  # client_id not changed by update
             number="",
             issue_date=data["issue_date"],
-            observations=data.get("observations"),
+            observations_json=data.get("observations_json"),
             items=[
                 QuoteItemInput(
                     quantity=i["quantity"],
@@ -826,7 +826,7 @@ def _save_with_client(client_id: int, client_data: dict, form_data: dict, doc_id
             client_id=client_id,
             number=form_data.get("number", ""),
             issue_date=form_data["issue_date"],
-            observations=form_data.get("observations"),
+            observations_json=form_data.get("observations_json"),
             show_iva=form_data.get("show_iva", True),
             items=[
                 QuoteItemInput(
@@ -882,7 +882,7 @@ def _reassign_client_and_update_quote(client_data: dict, form_data: dict, doc_id
             client_id=client.id,
             number=form_data.get("number", ""),
             issue_date=form_data["issue_date"],
-            observations=form_data.get("observations"),
+            observations_json=form_data.get("observations_json"),
             show_iva=form_data.get("show_iva", True),
             items=[
                 QuoteItemInput(
@@ -926,7 +926,7 @@ def _create_client_and_quote(client_data: dict, form_data: dict) -> dict:
             client_id=client.id,
             number=form_data.get("number", ""),
             issue_date=form_data["issue_date"],
-            observations=form_data.get("observations"),
+            observations_json=form_data.get("observations_json"),
             show_iva=form_data.get("show_iva", True),
             items=[
                 QuoteItemInput(
