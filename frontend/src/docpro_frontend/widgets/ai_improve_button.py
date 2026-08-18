@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QPushButton, QTextEdit
+from PySide6.QtWidgets import QPushButton, QTextEdit, QMessageBox
 from PySide6.QtCore import QThreadPool
 
 import docpro_frontend.theme as _th
@@ -56,7 +56,7 @@ QPushButton:disabled {{
 
             api_key = EncryptionService().load_groq_key()
             if not api_key:
-                return None, None, None
+                return None, None, None, "no_key"
 
             session = SessionLocal()
             try:
@@ -68,7 +68,7 @@ QPushButton:disabled {{
                 session.close()
 
             improved, actual = GroqService().improve_text(text, api_key, requested)
-            return improved, actual, requested
+            return improved, actual, requested, None
 
         worker = Worker(run)
         worker.signals.result.connect(self._on_result)
@@ -76,21 +76,30 @@ QPushButton:disabled {{
         QThreadPool.globalInstance().start(worker)
 
     def _on_result(self, result: tuple) -> None:
-        improved, actual_model, requested_model = result
+        improved, actual_model, requested_model, reason = result
         self._reset()
         if improved is None:
-            self.setToolTip(
-                "No se pudo mejorar el texto. Verifica tu API key y conexión."
-            )
+            if reason == "no_key":
+                QMessageBox.warning(
+                    self,
+                    "API key no configurada",
+                    "No hay una API key de Groq guardada.\n\n"
+                    "Ve a Configuración → IA · Groq para añadirla.",
+                )
+            else:
+                QMessageBox.warning(
+                    self,
+                    "No se pudo mejorar el texto",
+                    "Verifica tu API key de Groq y tu conexión a internet.",
+                )
             return
-        self.setToolTip("")
         self._show_suggestion_bubble(improved)
         if actual_model and requested_model and actual_model != requested_model:
             self._show_fallback_toast(actual_model)
 
     def _on_error(self, msg: str) -> None:
         self._reset()
-        self.setToolTip(f"Error inesperado: {msg}")
+        QMessageBox.critical(self, "Error inesperado", msg)
 
     def _reset(self) -> None:
         self.setEnabled(True)
